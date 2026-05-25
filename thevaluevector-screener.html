@@ -3,217 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Value Vector — Stock Screener</title>
+<title>The Value Vector — Screener</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0d0f0e;
-    --bg2: #131615;
-    --bg3: #1a1d1b;
-    --border: rgba(255,255,255,0.07);
-    --border-hover: rgba(255,255,255,0.14);
-    --text: #e8ebe9;
-    --text2: #8a9490;
-    --text3: #55615c;
-    --accent: #b8f5a0;
-    --accent2: #7dd86a;
-    --amber: #f5c842;
-    --red: #f56e6e;
-    --mono: 'DM Mono', monospace;
-    --serif: 'Instrument Serif', serif;
-    --sans: 'DM Sans', sans-serif;
-  }
+:root {
+  --bg: #0a0b09;
+  --bg2: #111310;
+  --bg3: #181a16;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e6ebe4;
+  --text2: #7a8a76;
+  --text3: #3d4a3a;
+  --accent: #c8f59a;
+  --accent2: #9ed870;
+  --amber: #f0c040;
+  --red: #f06060;
+  --teal: #60d0c0;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Playfair Display', serif;
+  --sans: 'DM Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+body{display:flex;flex-direction:column}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:0.5px solid var(--border);background:var(--bg)}
+.logo{display:flex;align-items:baseline;gap:12px}
+.logo-name{font-family:var(--serif);font-size:22px;color:var(--text);letter-spacing:-0.02em;font-style:italic}
+.logo-tag{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:16px}
+.status-wrap{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
+.dot.live{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
+.dot.err{background:var(--red)}
+.btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#0d1a08;border-color:transparent;font-weight:500}
+.btn-primary:hover{background:var(--accent2);color:#0d1a08}
 
-  /* Lock the entire page to viewport — this is the key fix */
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
+/* LAYOUT */
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:280px 1fr}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.5;
-    display: flex;
-    flex-direction: column;
-  }
+/* SIDEBAR */
+.sidebar{min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;border-right:0.5px solid var(--border);padding:16px 14px;display:flex;flex-direction:column;gap:5px}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-  /* ─── HEADER ─── */
-  header {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 28px;
-    border-bottom: 0.5px solid var(--border);
-    background: var(--bg);
-    z-index: 100;
-  }
+.section{background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
+.section-header{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.section-header:hover{background:var(--bg3)}
+.section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);font-weight:500}
+.chevron{font-size:9px;color:var(--text3);transition:transform .2s;display:inline-block}
+.chevron.open{transform:rotate(180deg)}
+.section-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-top:0.5px solid var(--border)}
+.section-body.collapsed{display:none}
 
-  .logo { display: flex; align-items: baseline; gap: 10px; }
-  .logo-name { font-family: var(--serif); font-size: 20px; color: var(--text); letter-spacing: -0.01em; }
-  .logo-tag { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; }
-  .header-right { display: flex; align-items: center; gap: 16px; }
+/* SLIDERS */
+.slider-row{display:flex;flex-direction:column;gap:4px}
+.slider-meta{display:flex;justify-content:space-between;align-items:center}
+.slider-label{font-size:11px;color:var(--text2)}
+.slider-val{font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:500}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:var(--bg3);border-radius:1px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--accent);cursor:pointer}
 
-  .api-status { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--text3); }
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
-  .status-dot.live { background: var(--accent2); }
-  .status-dot.error { background: var(--red); }
+/* TOGGLES */
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tog{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer;padding:4px 7px;border-radius:4px;border:0.5px solid transparent;transition:all .1s;user-select:none}
+.tog:hover{border-color:var(--border2);background:var(--bg3)}
+.tog.active{color:var(--text);border-color:var(--border2)}
+.tog-pip{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .1s}
+.tog.active .tog-pip{background:var(--accent)}
+.tog-ctrl{display:flex;gap:10px;font-size:10px;font-family:var(--mono)}
+.tog-ctrl span{color:var(--text3);cursor:pointer}
+.tog-ctrl span:hover{color:var(--accent)}
 
-  .btn { font-family: var(--sans); font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 0.5px solid var(--border-hover); background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
-  .btn:hover { background: var(--bg3); color: var(--text); }
-  .btn-primary { background: var(--accent); color: #0d1a0a; border-color: transparent; }
-  .btn-primary:hover { background: var(--accent2); }
-  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+/* WEIGHTS */
+.weight-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2);padding:2px 0}
+.pips{display:flex;gap:3px}
+.pip{width:8px;height:8px;border-radius:2px;background:var(--border2);cursor:pointer;border:none;padding:0;transition:background .1s}
+.pip.on{background:var(--accent)}
 
-  /* ─── LAYOUT — fills remaining height exactly ─── */
-  .layout {
-    flex: 1;
-    min-height: 0;          /* critical: lets flex child shrink below content size */
-    display: grid;
-    grid-template-columns: 300px 1fr;
-  }
+/* MAIN */
+.main{min-height:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
 
-  /* ─── SIDEBAR ─── */
-  .sidebar {
-    min-height: 0;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border-right: 0.5px solid var(--border);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .sidebar::-webkit-scrollbar { width: 4px; }
-  .sidebar::-webkit-scrollbar-track { background: transparent; }
-  .sidebar::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
+/* STATS */
+.stats{flex-shrink:0;display:flex;border-bottom:0.5px solid var(--border)}
+.stat{flex:1;padding:12px 18px;border-right:0.5px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.stat-val{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--text);line-height:1}
+.stat-val.green{color:var(--accent)}
+.stat-val.amber{color:var(--amber)}
 
-  /* ─── FILTER SECTIONS ─── */
-  .section { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+/* TABLE */
+.table-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:auto}
+.table-wrap::-webkit-scrollbar{width:3px;height:3px}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+table{width:100%;border-collapse:collapse;table-layout:auto;min-width:900px}
+thead{position:sticky;top:0;background:var(--bg);z-index:10}
+th{padding:9px 14px;text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:400;border-bottom:0.5px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+th:hover{color:var(--text2)}
+th.sorted{color:var(--accent)}
+th.r{text-align:right}
+tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s;cursor:default}
+tbody tr:hover{background:var(--bg2)}
+td{padding:10px 14px;font-size:12px;color:var(--text2);white-space:nowrap}
+td.r{text-align:right}
+.co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.co-ticker{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:1px}
+.num{font-family:var(--mono);font-size:11px}
+.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500}
+.bg{background:rgba(200,245,154,0.1);color:var(--accent)}
+.ba{background:rgba(240,192,64,0.1);color:var(--amber)}
+.br{background:rgba(240,96,96,0.1);color:var(--red)}
+.score-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.score-num{font-family:var(--mono);font-size:11px;font-weight:500;min-width:26px;text-align:right}
+.score-track{width:44px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
+.score-fill{height:100%;border-radius:1px;transition:width .4s}
 
-  .section-header { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; border-bottom: 0.5px solid var(--border); }
-  .section-header:hover { background: var(--bg3); }
+/* STATES */
+.state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:10px;color:var(--text3)}
+.state p{font-size:13px}
+.state small{font-size:10px;font-family:var(--mono)}
+.spinner{width:16px;height:16px;border:1.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-  .section-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text2); font-weight: 500; }
+/* FOOTER */
+.footer{flex-shrink:0;padding:8px 18px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.footer-text{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.06em}
 
-  .chevron { font-size: 10px; color: var(--text3); transition: transform .2s; display: inline-block; }
-  .chevron.open { transform: rotate(180deg); }
+/* LOAD MORE */
+.load-more-wrap{text-align:center;padding:14px;border-top:0.5px solid var(--border)}
 
-  .section-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-  .section-body.collapsed { display: none; }
-
-  /* ─── SLIDERS ─── */
-  .slider-row { display: flex; flex-direction: column; gap: 5px; }
-  .slider-meta { display: flex; justify-content: space-between; align-items: center; }
-  .slider-label { font-size: 12px; color: var(--text2); }
-  .slider-val { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 500; }
-
-  input[type=range] { -webkit-appearance: none; width: 100%; height: 2px; background: var(--bg3); border-radius: 1px; outline: none; cursor: pointer; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); cursor: pointer; transition: transform .1s; }
-  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
-
-  /* ─── SECTOR TOGGLES ─── */
-  .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-  .toggle-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text2); cursor: pointer; padding: 5px 8px; border-radius: 5px; border: 0.5px solid transparent; transition: all .1s; user-select: none; }
-  .toggle-item:hover { border-color: var(--border-hover); background: var(--bg3); }
-  .toggle-item.active { color: var(--text); border-color: var(--border-hover); }
-  .toggle-pip { width: 7px; height: 7px; border-radius: 50%; background: var(--border-hover); flex-shrink: 0; transition: background .1s; }
-  .toggle-item.active .toggle-pip { background: var(--accent); }
-
-  /* ─── API KEY ─── */
-  .api-key-wrap { display: flex; gap: 6px; }
-  .api-key-input { flex: 1; background: var(--bg3); border: 0.5px solid var(--border); border-radius: 6px; padding: 7px 10px; font-family: var(--mono); font-size: 11px; color: var(--text); outline: none; transition: border-color .15s; min-width: 0; }
-  .api-key-input:focus { border-color: var(--accent); }
-  .api-key-input::placeholder { color: var(--text3); }
-
-  /* ─── WEIGHT PIPS ─── */
-  .weight-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text2); padding: 3px 0; }
-  .weight-pips { display: flex; gap: 3px; }
-  .weight-pip { width: 8px; height: 8px; border-radius: 2px; background: var(--border-hover); cursor: pointer; transition: background .1s; border: none; padding: 0; }
-  .weight-pip.on { background: var(--accent); }
-
-  /* ─── MAIN PANEL ─── */
-  .main {
-    min-height: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* ─── STATS BAR ─── */
-  .stats-bar { flex-shrink: 0; display: flex; align-items: stretch; border-bottom: 0.5px solid var(--border); }
-  .stat-cell { flex: 1; padding: 12px 18px; border-right: 0.5px solid var(--border); }
-  .stat-cell:last-child { border-right: none; }
-  .stat-label { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
-  .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); line-height: 1; }
-  .stat-value.green { color: var(--accent); }
-  .stat-value.amber { color: var(--amber); }
-
-  /* ─── TABLE — scrolls independently ─── */
-  .table-wrap {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: auto;
-  }
-  .table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
-  .table-wrap::-webkit-scrollbar-track { background: transparent; }
-  .table-wrap::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
-
-  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-
-  thead { position: sticky; top: 0; background: var(--bg); z-index: 10; }
-
-  th { padding: 10px 14px; text-align: left; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); font-weight: 400; border-bottom: 0.5px solid var(--border); cursor: pointer; white-space: nowrap; user-select: none; }
-  th:hover { color: var(--text2); }
-  th.sorted { color: var(--accent); }
-  th:nth-child(1) { width: 22%; }
-  th:nth-child(2) { width: 11%; }
-  th:nth-child(3), th:nth-child(4), th:nth-child(5), th:nth-child(6), th:nth-child(7), th:nth-child(8) { width: 9%; text-align: right; }
-  th:nth-child(9) { width: 13%; text-align: right; }
-
-  tbody tr { border-bottom: 0.5px solid var(--border); transition: background .1s; }
-  tbody tr:hover { background: var(--bg2); }
-
-  td { padding: 11px 14px; font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .company-name { font-weight: 500; color: var(--text); font-size: 13px; display: block; overflow: hidden; text-overflow: ellipsis; }
-  .company-ticker { font-family: var(--mono); font-size: 10px; color: var(--text3); display: block; margin-top: 1px; }
-  .num { font-family: var(--mono); font-size: 12px; text-align: right; display: block; }
-
-  .badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 500; }
-  .badge-green { background: rgba(184,245,160,0.1); color: var(--accent); }
-  .badge-amber { background: rgba(245,200,66,0.1); color: var(--amber); }
-  .badge-red { background: rgba(245,110,110,0.1); color: var(--red); }
-
-  .score-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-  .score-num { font-family: var(--mono); font-size: 12px; font-weight: 500; min-width: 28px; text-align: right; }
-  .score-track { width: 52px; height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-  .score-fill { height: 100%; border-radius: 2px; transition: width .4s ease; }
-
-  /* ─── STATES ─── */
-  .state-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 280px; gap: 10px; color: var(--text3); }
-  .state-msg .icon { font-size: 26px; opacity: .4; }
-  .state-msg p { font-size: 13px; }
-  .state-msg small { font-size: 11px; font-family: var(--mono); }
-
-  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ─── FOOTER ─── */
-  .footer { flex-shrink: 0; padding: 8px 18px; border-top: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .footer-text { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
+a{color:var(--accent);text-decoration:none}
 </style>
 </head>
 <body>
@@ -224,539 +150,462 @@
     <span class="logo-tag">Screener</span>
   </div>
   <div class="header-right">
-    <div class="api-status">
-      <div class="status-dot" id="status-dot"></div>
-      <span id="status-text">not connected</span>
+    <div class="status-wrap">
+      <div class="dot" id="dot"></div>
+      <span id="status-text">ready</span>
     </div>
     <button class="btn btn-primary" onclick="runScreen()" id="run-btn">Run screen</button>
   </div>
 </header>
 
 <div class="layout">
-
-  <!-- SIDEBAR -->
   <aside class="sidebar">
-
-    <!-- API Key -->
-    <div class="section">
-      <div class="section-header" onclick="toggleSection(this)">
-        <span class="section-title">API key</span>
-        <span class="chevron open">▼</span>
-      </div>
-      <div class="section-body">
-        <div style="font-size:11px;color:var(--text3);line-height:1.6">Free key from <a href="https://financialmodelingprep.com" target="_blank">financialmodelingprep.com</a>. Saved in your browser.</div>
-        <div class="api-key-wrap">
-          <input class="api-key-input" type="text" id="api-key" placeholder="Paste FMP API key" oninput="saveKey()">
-          <button class="btn" onclick="testKey()">Test</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Discovery -->
     <div class="section">
-      <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Discovery</span>
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Market cap min</span><span class="slider-val" id="v-mc-min">$100M</span></div>
-          <input type="range" min="50" max="500" step="10" value="100" id="mc-min" oninput="syncSlider(this)">
+          <input type="range" min="50" max="2000" step="50" value="100" id="mc-min" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Market cap max</span><span class="slider-val" id="v-mc-max">$5.0B</span></div>
-          <input type="range" min="1" max="20" step="0.5" value="5" id="mc-max" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Market cap max</span><span class="slider-val" id="v-mc-max">$10B</span></div>
+          <input type="range" min="1" max="50" step="1" value="10" id="mc-max" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max analyst estimates</span><span class="slider-val" id="v-cov-max">≤ 3</span></div>
-          <input type="range" min="0" max="15" step="1" value="3" id="cov-max" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min avg daily vol</span><span class="slider-val" id="v-vol">$500K</span></div>
+          <input type="range" min="100" max="10000" step="100" value="500" id="vol" oninput="syncSlider(this)">
         </div>
-        <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min avg daily vol</span><span class="slider-val" id="v-vol-min">$500K</span></div>
-          <input type="range" min="100" max="5000" step="100" value="500" id="vol-min" oninput="syncSlider(this)">
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-          <span style="font-size:11px;color:var(--text3)">Sectors</span>
-          <div style="display:flex;gap:8px">
-            <span style="font-size:11px;color:var(--accent);cursor:pointer" onclick="setSectors(true)">all</span>
-            <span style="font-size:11px;color:var(--text3);cursor:pointer" onclick="setSectors(false)">none</span>
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+          <span style="font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">Sectors</span>
+          <div class="tog-ctrl"><span onclick="setSectors(true)">all</span><span onclick="setSectors(false)">none</span></div>
         </div>
         <div class="toggle-grid">
-          <div class="toggle-item active" data-sector="Technology" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Technology</div>
-          <div class="toggle-item active" data-sector="Industrials" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Industrials</div>
-          <div class="toggle-item active" data-sector="Healthcare" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Healthcare</div>
-          <div class="toggle-item active" data-sector="Consumer Cyclical" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Con. Cyclical</div>
-          <div class="toggle-item active" data-sector="Consumer Defensive" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Con. Defensive</div>
-          <div class="toggle-item active" data-sector="Financial Services" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Financials</div>
-          <div class="toggle-item active" data-sector="Energy" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Energy</div>
-          <div class="toggle-item active" data-sector="Basic Materials" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Materials</div>
-          <div class="toggle-item active" data-sector="Real Estate" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Real Estate</div>
-          <div class="toggle-item active" data-sector="Utilities" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Utilities</div>
-          <div class="toggle-item active" data-sector="Communication Services" onclick="this.classList.toggle('active')"><div class="toggle-pip"></div>Comm. Services</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quality -->
-    <div class="section">
-      <div class="section-header" onclick="toggleSection(this)">
-        <span class="section-title">Quality gates</span>
-        <span class="chevron open">▼</span>
-      </div>
-      <div class="section-body">
-        <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min revenue growth</span><span class="slider-val" id="v-rev-growth">≥ 5%</span></div>
-          <input type="range" min="-20" max="50" step="1" value="5" id="rev-growth" oninput="syncSlider(this)">
-        </div>
-        <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min gross margin</span><span class="slider-val" id="v-gm-min">≥ 30%</span></div>
-          <input type="range" min="0" max="90" step="5" value="30" id="gm-min" oninput="syncSlider(this)">
-        </div>
-        <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max debt / equity</span><span class="slider-val" id="v-de-max">≤ 1.0×</span></div>
-          <input type="range" min="0" max="5" step="0.1" value="1" id="de-max" oninput="syncSlider(this)">
-        </div>
-        <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min current ratio</span><span class="slider-val" id="v-cr-min">≥ 1.0×</span></div>
-          <input type="range" min="0.5" max="5" step="0.1" value="1" id="cr-min" oninput="syncSlider(this)">
-        </div>
-        <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min ROE</span><span class="slider-val" id="v-roe-min">≥ 8%</span></div>
-          <input type="range" min="0" max="40" step="1" value="8" id="roe-min" oninput="syncSlider(this)">
+          <div class="tog active" data-sector="Technology" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Technology</div>
+          <div class="tog active" data-sector="Industrials" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Industrials</div>
+          <div class="tog active" data-sector="Healthcare" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Healthcare</div>
+          <div class="tog active" data-sector="Consumer Cyclical" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Con. Cyclical</div>
+          <div class="tog active" data-sector="Consumer Defensive" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Con. Defensive</div>
+          <div class="tog active" data-sector="Financial Services" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Financials</div>
+          <div class="tog active" data-sector="Energy" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Energy</div>
+          <div class="tog active" data-sector="Basic Materials" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Materials</div>
+          <div class="tog active" data-sector="Real Estate" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Real Estate</div>
+          <div class="tog active" data-sector="Utilities" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Utilities</div>
+          <div class="tog active" data-sector="Communication Services" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Comm. Services</div>
         </div>
       </div>
     </div>
 
     <!-- Valuation -->
     <div class="section">
-      <div class="section-header" onclick="toggleSection(this)">
-        <span class="section-title">Valuation signals</span>
+      <div class="section-header" onclick="toggleSec(this)">
+        <span class="section-title">Valuation</span>
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max P/E</span><span class="slider-val" id="v-pe-max">≤ 20×</span></div>
-          <input type="range" min="5" max="60" step="1" value="20" id="pe-max" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/E</span><span class="slider-val" id="v-pe">≤ 30×</span></div>
+          <input type="range" min="5" max="100" step="1" value="30" id="pe" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max P/B</span><span class="slider-val" id="v-pb-max">≤ 2.0×</span></div>
-          <input type="range" min="0.5" max="10" step="0.1" value="2" id="pb-max" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/B</span><span class="slider-val" id="v-pb">≤ 5×</span></div>
+          <input type="range" min="0.5" max="20" step="0.5" value="5" id="pb" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max EV / EBITDA</span><span class="slider-val" id="v-ev-max">≤ 12.0×</span></div>
-          <input type="range" min="3" max="30" step="0.5" value="12" id="ev-max" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/S</span><span class="slider-val" id="v-ps">≤ 5×</span></div>
+          <input type="range" min="0.5" max="20" step="0.5" value="5" id="ps" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min dividend yield</span><span class="slider-val" id="v-div-min">≥ 0.0%</span></div>
-          <input type="range" min="0" max="10" step="0.5" value="0" id="div-min" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/FCF</span><span class="slider-val" id="v-pfcf">≤ 30×</span></div>
+          <input type="range" min="5" max="100" step="1" value="30" id="pfcf" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min FCF yield</span><span class="slider-val" id="v-fcfy">≥ 0%</span></div>
+          <input type="range" min="0" max="20" step="0.5" value="0" id="fcfy" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Max EV/EBITDA</span><span class="slider-val" id="v-ev">≤ 20×</span></div>
+          <input type="range" min="3" max="50" step="1" value="20" id="ev" oninput="syncSlider(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- Profitability -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSec(this)">
+        <span class="section-title">Profitability</span>
+        <span class="chevron open">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min gross margin</span><span class="slider-val" id="v-gm">≥ 0%</span></div>
+          <input type="range" min="0" max="90" step="5" value="0" id="gm" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min net margin</span><span class="slider-val" id="v-nm">≥ 0%</span></div>
+          <input type="range" min="-50" max="50" step="1" value="0" id="nm" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min EBITDA margin</span><span class="slider-val" id="v-em">≥ 0%</span></div>
+          <input type="range" min="-50" max="60" step="1" value="0" id="em" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min ROE</span><span class="slider-val" id="v-roe">≥ 0%</span></div>
+          <input type="range" min="-50" max="50" step="1" value="0" id="roe" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min ROA</span><span class="slider-val" id="v-roa">≥ 0%</span></div>
+          <input type="range" min="-30" max="30" step="1" value="0" id="roa" oninput="syncSlider(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance sheet -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSec(this)">
+        <span class="section-title">Balance sheet</span>
+        <span class="chevron open">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Max debt/equity</span><span class="slider-val" id="v-de">≤ 2×</span></div>
+          <input type="range" min="0" max="10" step="0.1" value="2" id="de" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min current ratio</span><span class="slider-val" id="v-cr">≥ 1×</span></div>
+          <input type="range" min="0.5" max="5" step="0.1" value="1" id="cr" oninput="syncSlider(this)">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta"><span class="slider-label">Min dividend yield</span><span class="slider-val" id="v-dy">≥ 0%</span></div>
+          <input type="range" min="0" max="10" step="0.5" value="0" id="dy" oninput="syncSlider(this)">
         </div>
       </div>
     </div>
 
     <!-- Score weights -->
     <div class="section">
-      <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Score weights</span>
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Click pips to set importance (0 – 5)</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-family:var(--mono)">Click pips to set importance (0–5)</div>
         <div id="weights-ui"></div>
       </div>
     </div>
 
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
-
-    <div class="stats-bar">
-      <div class="stat-cell"><div class="stat-label">Results</div><div class="stat-value green" id="s-count">—</div></div>
-      <div class="stat-cell"><div class="stat-label">Avg P/E</div><div class="stat-value" id="s-pe">—</div></div>
-      <div class="stat-cell"><div class="stat-label">Avg coverage</div><div class="stat-value" id="s-cov">—</div></div>
-      <div class="stat-cell"><div class="stat-label">Avg gross margin</div><div class="stat-value" id="s-gm">—</div></div>
-      <div class="stat-cell"><div class="stat-label">Last run</div><div class="stat-value amber" id="s-time" style="font-size:13px">—</div></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Results</div><div class="stat-val green" id="s-count">—</div></div>
+      <div class="stat"><div class="stat-label">Avg P/E</div><div class="stat-val" id="s-pe">—</div></div>
+      <div class="stat"><div class="stat-label">Avg gross margin</div><div class="stat-val" id="s-gm">—</div></div>
+      <div class="stat"><div class="stat-label">Avg FCF yield</div><div class="stat-val" id="s-fcfy">—</div></div>
+      <div class="stat"><div class="stat-label">Last run</div><div class="stat-val amber" id="s-time" style="font-size:12px">—</div></div>
     </div>
 
     <div class="table-wrap" id="table-wrap">
-      <div class="state-msg" id="empty-state">
-        <div class="icon">◈</div>
-        <p>Enter your FMP API key and click Run screen</p>
-        <small>Free key at financialmodelingprep.com</small>
+      <div class="state">
+        <div style="font-family:var(--serif);font-size:28px;font-style:italic;color:var(--text3);margin-bottom:4px">Find the hidden.</div>
+        <p>Adjust your filters and hit Run screen</p>
+        <small>Powered by Supabase · ~7,000 US companies</small>
       </div>
     </div>
 
     <div class="footer">
       <span class="footer-text">thevaluevector.com · small &amp; midcap discovery</span>
-      <span class="footer-text">Data: Financial Modeling Prep</span>
+      <span class="footer-text">Data: FMP · Prices: Yahoo Finance</span>
     </div>
-
   </main>
 </div>
 
 <script>
+const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
+const PRICE_PROXY = '/api/price';
+const PAGE_SIZE = 50;
+
 const WEIGHTS_CONFIG = [
-  { id: 'w-pe',  label: 'P/E (low)',      default: 3 },
-  { id: 'w-pb',  label: 'P/B (low)',      default: 2 },
-  { id: 'w-ev',  label: 'EV/EBITDA',      default: 2 },
-  { id: 'w-gm',  label: 'Gross margin',   default: 2 },
-  { id: 'w-roe', label: 'ROE',            default: 2 },
-  { id: 'w-cov', label: 'Low coverage',   default: 3 },
+  { id: 'w-pe',   label: 'Low P/E',       default: 3 },
+  { id: 'w-fcfy', label: 'FCF yield',      default: 4 },
+  { id: 'w-ev',   label: 'EV/EBITDA',      default: 2 },
+  { id: 'w-gm',   label: 'Gross margin',   default: 2 },
+  { id: 'w-roe',  label: 'ROE',            default: 2 },
+  { id: 'w-de',   label: 'Low debt',       default: 2 },
 ];
 const weights = {};
 WEIGHTS_CONFIG.forEach(w => weights[w.id] = w.default);
 
-function buildWeightsUI() {
-  const container = document.getElementById('weights-ui');
-  container.innerHTML = WEIGHTS_CONFIG.map(w => `
+function buildWeights() {
+  document.getElementById('weights-ui').innerHTML = WEIGHTS_CONFIG.map(w => `
     <div class="weight-row">
       <span>${w.label}</span>
-      <div class="weight-pips" data-wid="${w.id}">
-        ${[1,2,3,4,5].map(i => `<button class="weight-pip ${i <= weights[w.id] ? 'on' : ''}" onclick="setWeight('${w.id}',${i},this.parentElement)"></button>`).join('')}
+      <div class="pips" data-wid="${w.id}">
+        ${[1,2,3,4,5].map(i => `<button class="pip ${i <= weights[w.id] ? 'on' : ''}" onclick="setWeight('${w.id}',${i},this.parentElement)"></button>`).join('')}
       </div>
     </div>`).join('');
 }
-
-function setWeight(id, v, pipsEl) {
+function setWeight(id, v, el) {
   weights[id] = v;
-  pipsEl.querySelectorAll('.weight-pip').forEach((p, i) => p.classList.toggle('on', i < v));
+  el.querySelectorAll('.pip').forEach((p,i) => p.classList.toggle('on', i < v));
 }
+buildWeights();
 
-buildWeightsUI();
-
-function setSectors(active) {
-  document.querySelectorAll('.toggle-item[data-sector]').forEach(el => {
-    el.classList.toggle('active', active);
-  });
+function toggleSec(h) {
+  h.nextElementSibling.classList.toggle('collapsed');
+  h.querySelector('.chevron').classList.toggle('open');
 }
-
-function toggleSection(header) {
-  const body = header.nextElementSibling;
-  const chevron = header.querySelector('.chevron');
-  body.classList.toggle('collapsed');
-  chevron.classList.toggle('open');
-}
-
-function saveKey() {
-  const k = document.getElementById('api-key').value.trim();
-  if (k) localStorage.setItem('fmp_key', k);
-}
-
-function getKey() {
-  return document.getElementById('api-key').value.trim() || localStorage.getItem('fmp_key') || '';
-}
-
-window.addEventListener('load', () => {
-  const saved = localStorage.getItem('fmp_key');
-  if (saved) document.getElementById('api-key').value = saved;
-  document.querySelectorAll('input[type=range]').forEach(el => syncSlider(el));
-});
-
-async function testKey() {
-  const key = getKey();
-  if (!key) { alert('Paste your API key first.'); return; }
-  setStatus('testing...');
-  try {
-    const url = `https://financialmodelingprep.com/stable/company-screener?marketCapMoreThan=1000000000&marketCapLowerThan=5000000000&limit=1&apikey=${key}`;
-    const r = await fetch(url);
-    const d = await r.json();
-    console.log('FMP response:', d);
-    if (Array.isArray(d) || (d && d.data)) {
-      setStatus('connected', true);
-    } else if (d && d['Error Message']) {
-      setStatus('invalid key', false, true);
-    } else {
-      setStatus('connected', true);
-    }
-  } catch(e) {
-    setStatus('connection error', false, true);
-    console.error('Fetch error:', e);
-  }
-}
-
-function setStatus(text, live, error) {
-  document.getElementById('status-text').textContent = text;
-  const dot = document.getElementById('status-dot');
-  dot.className = 'status-dot' + (live ? ' live' : error ? ' error' : '');
+function setSectors(on) {
+  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.toggle('active', on));
 }
 
 function v(id) { return parseFloat(document.getElementById(id).value); }
-
-function syncSlider(input) {
-  const id = input.id;
-  const val = parseFloat(input.value);
-  const labels = {
-    'mc-min':    () => `$${val}M`,
-    'mc-max':    () => `$${val.toFixed(1)}B`,
-    'cov-max':   () => `≤ ${val}`,
-    'vol-min':   () => `$${val}K`,
-    'rev-growth':() => `≥ ${val}%`,
-    'gm-min':    () => `≥ ${val}%`,
-    'de-max':    () => `≤ ${val.toFixed(1)}×`,
-    'cr-min':    () => `≥ ${val.toFixed(1)}×`,
-    'roe-min':   () => `≥ ${val}%`,
-    'pe-max':    () => `≤ ${val}×`,
-    'pb-max':    () => `≤ ${val.toFixed(1)}×`,
-    'ev-max':    () => `≤ ${val.toFixed(1)}×`,
-    'div-min':   () => `≥ ${val.toFixed(1)}%`,
+function syncSlider(el) {
+  const id = el.id, val = parseFloat(el.value);
+  const map = {
+    'mc-min': `$${val}M`, 'mc-max': `$${val}B`, 'vol': `$${val}K`,
+    'pe': `≤ ${val}×`, 'pb': `≤ ${val}×`, 'ps': `≤ ${val}×`,
+    'pfcf': `≤ ${val}×`, 'fcfy': `≥ ${val.toFixed(1)}%`, 'ev': `≤ ${val}×`,
+    'gm': `≥ ${val}%`, 'nm': `≥ ${val}%`, 'em': `≥ ${val}%`,
+    'roe': `≥ ${val}%`, 'roa': `≥ ${val}%`,
+    'de': `≤ ${val.toFixed(1)}×`, 'cr': `≥ ${val.toFixed(1)}×`, 'dy': `≥ ${val.toFixed(1)}%`
   };
-  const el = document.getElementById('v-' + id);
-  if (el && labels[id]) el.textContent = labels[id]();
+  const el2 = document.getElementById('v-' + id);
+  if (el2 && map[id]) el2.textContent = map[id];
+}
+document.querySelectorAll('input[type=range]').forEach(el => syncSlider(el));
+
+function setStatus(text, state) {
+  document.getElementById('status-text').textContent = text;
+  const dot = document.getElementById('dot');
+  dot.className = 'dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : '');
 }
 
-let sortCol = 'score';
-let sortDir = -1;
-let lastResults = [];
-let allScreenerResults = [];
-let profileOffset = 0;
-const BATCH_SIZE = 25;
+let sortCol = 'score', sortDir = -1, lastResults = [], offset = 0, allData = [];
 
-async function fetchProfile(symbol, key) {
-  try {
-    const url = `https://financialmodelingprep.com/stable/profile?symbol=${symbol}&apikey=${key}`;
-    const r = await fetch(url);
-    if (!r.ok) {
-      console.error(`Profile fetch failed for ${symbol}: ${r.status}`);
-      return null;
+async function supabaseQuery(params) {
+  const url = `${SUPABASE_URL}/rest/v1/rpc/screen_companies`;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,market_cap,avg_volume,ratios(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share)&${params}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Accept': 'application/json'
     }
-    const d = await r.json();
-    if (symbol === 'CNX' || symbol === 'OLLI') console.log(`Profile for ${symbol}:`, d);
-    return Array.isArray(d) ? d[0] : d;
-  } catch(e) {
-    console.error(`Profile error for ${symbol}:`, e);
-    return null;
-  }
+  });
+  if (!res.ok) throw new Error(`Supabase error ${res.status}`);
+  return res.json();
 }
 
-async function enrichBatch(stocks, key) {
-  const profiles = await Promise.all(stocks.map(c => fetchProfile(c.symbol, key)));
-  return stocks.map((c, i) => ({ ...c, ...(profiles[i] || {}) }));
-}
-
-async function runScreen() {
-  const key = getKey();
-  if (!key) { alert('Please enter your FMP API key first.'); return; }
-
-  const btn = document.getElementById('run-btn');
-  btn.textContent = 'Running...';
-  btn.disabled = true;
-  setStatus('fetching...', false);
-  document.getElementById('table-wrap').innerHTML = '<div class="state-msg"><div class="spinner"></div><p>Fetching companies...</p></div>';
-
+async function fetchPrice(symbol) {
   try {
-    const activeSectors = Array.from(document.querySelectorAll('.toggle-item.active')).map(el => el.dataset.sector);
+    const res = await fetch(`${PRICE_PROXY}?symbol=${symbol}`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d.price || null;
+  } catch(e) { return null; }
+}
 
-    const params = new URLSearchParams({
-      marketCapMoreThan: v('mc-min') * 1e6,
-      marketCapLowerThan: v('mc-max') * 1e9,
-      country: 'US',
-      exchangeShortName: 'NYSE,NASDAQ,AMEX',
-      isEtf: 'false',
-      isFund: 'false',
-      isActivelyTrading: 'true',
-      limit: 500,
-      apikey: key
-    });
+function buildQuery() {
+  const activeSectors = Array.from(document.querySelectorAll('.tog.active[data-sector]')).map(el => el.dataset.sector);
+  const mcMin = v('mc-min') * 1e6;
+  const mcMax = v('mc-max') * 1e9;
+  const volMin = v('vol') * 1e3;
 
-    const r = await fetch(`https://financialmodelingprep.com/stable/company-screener?${params}`);
-    if (!r.ok) throw new Error('API error ' + r.status);
-    const raw = await r.json();
-
-    if (!Array.isArray(raw) || raw.length === 0) throw new Error('No results — try broadening your market cap range.');
-
-    allScreenerResults = raw.filter(c => !c.isEtf && !c.isFund).filter(c => {
-      if (c.sector && activeSectors.length && !activeSectors.some(s => (c.sector||'').includes(s) || s.includes(c.sector))) return false;
-      if (c.volume && c.volume < v('vol-min') * 1000) return false;
-      return true;
-    });
-
-    profileOffset = 0;
-    lastResults = [];
-    setStatus('connected', true);
-    await loadMoreProfiles(key, true);
-
-  } catch(e) {
-    setStatus('error', false, true);
-    document.getElementById('table-wrap').innerHTML = `<div class="state-msg"><div class="icon">⚠</div><p>${e.message}</p><small>Check your API key and try again</small></div>`;
-  } finally {
-    btn.textContent = 'Run screen';
-    btn.disabled = false;
+  let params = `market_cap=gte.${Math.round(mcMin)}&market_cap=lte.${Math.round(mcMax)}`;
+  if (volMin > 0) params += `&avg_volume=gte.${Math.round(volMin)}`;
+  if (activeSectors.length < 11 && activeSectors.length > 0) {
+    params += `&sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})`;
   }
+  params += `&is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true`;
+  params += `&limit=1000`;
+  return params;
 }
 
-async function loadMoreProfiles(key, isFirst) {
-  if (!key) key = getKey();
-  const batch = allScreenerResults.slice(profileOffset, profileOffset + BATCH_SIZE);
-  if (batch.length === 0) return;
+function applyRatioFilters(companies) {
+  const peMax = v('pe'), pbMax = v('pb'), psMax = v('ps');
+  const pfcfMax = v('pfcf'), fcfyMin = v('fcfy') / 100;
+  const evMax = v('ev'), gmMin = v('gm') / 100;
+  const nmMin = v('nm') / 100, emMin = v('em') / 100;
+  const roeMin = v('roe') / 100, roaMin = v('roa') / 100;
+  const deMax = v('de'), crMin = v('cr'), dyMin = v('dy') / 100;
 
-  if (isFirst) {
-    document.getElementById('table-wrap').innerHTML = `<div class="state-msg"><div class="spinner"></div><p>Loading profiles 1–${Math.min(BATCH_SIZE, allScreenerResults.length)}...</p></div>`;
-  }
-
-  const enriched = await enrichBatch(batch, key);
-  const normalized = enriched.map(normalize);
-
-  const f = {
-    mcMin: v('mc-min'), mcMax: v('mc-max'),
-    covMax: v('cov-max'), volMin: v('vol-min'),
-    gmMin: v('gm-min'), deMax: v('de-max'),
-    crMin: v('cr-min'), roeMin: v('roe-min'),
-    peMax: v('pe-max'), pbMax: v('pb-max'),
-    evMax: v('ev-max'), divMin: v('div-min'),
-  };
-
-  const passing = normalized.filter(c => applyFilters(c, f));
-  const scored = passing.map(c => ({ ...c, score: calcScore(c, f) }));
-
-  lastResults = [...lastResults, ...scored];
-  profileOffset += BATCH_SIZE;
-
-  renderTable(lastResults);
-  updateStats(lastResults);
-  document.getElementById('s-time').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return companies.filter(c => {
+    const r = c.ratios;
+    if (!r) return false;
+    if (r.pe_ratio !== null && r.pe_ratio > 0 && r.pe_ratio > peMax) return false;
+    if (r.pb_ratio !== null && r.pb_ratio > 0 && r.pb_ratio > pbMax) return false;
+    if (r.ps_ratio !== null && r.ps_ratio > 0 && r.ps_ratio > psMax) return false;
+    if (r.pfcf_ratio !== null && r.pfcf_ratio > 0 && r.pfcf_ratio > pfcfMax) return false;
+    if (fcfyMin > 0 && (r.fcf_yield === null || r.fcf_yield < fcfyMin)) return false;
+    if (r.ev_ebitda !== null && r.ev_ebitda > 0 && r.ev_ebitda > evMax) return false;
+    if (gmMin > 0 && (r.gross_margin === null || r.gross_margin < gmMin)) return false;
+    if (nmMin > 0 && (r.net_margin === null || r.net_margin < nmMin)) return false;
+    if (emMin > 0 && (r.ebitda_margin === null || r.ebitda_margin < emMin)) return false;
+    if (roeMin > 0 && (r.roe === null || r.roe < roeMin)) return false;
+    if (roaMin > 0 && (r.roa === null || r.roa < roaMin)) return false;
+    if (r.debt_to_equity !== null && r.debt_to_equity > deMax) return false;
+    if (r.current_ratio !== null && r.current_ratio < crMin) return false;
+    if (dyMin > 0 && (r.dividend_yield === null || r.dividend_yield < dyMin)) return false;
+    return true;
+  });
 }
 
-function applyFilters(c, f) {
-  if (c.pe > 0 && c.pe < 500 && c.pe > f.peMax) return false;
-  if (c.priceToBookRatio > 0 && c.priceToBookRatio > f.pbMax) return false;
-  if (c.grossProfitMargin != null && c.grossProfitMargin * 100 < f.gmMin) return false;
-  if (c.debtToEquity != null && c.debtToEquity > f.deMax) return false;
-  if (c.currentRatio != null && c.currentRatio < f.crMin) return false;
-  if (c.roe != null && c.roe * 100 < f.roeMin) return false;
-  if (f.divMin > 0 && (!c.lastAnnualDividend || c.lastAnnualDividend < f.divMin)) return false;
-  return true;
-}
-
-function normalize(c) {
-  return {
-    companyName: c.companyName || c.name || '',
-    symbol: c.symbol || '',
-    sector: c.sector || '',
-    marketCap: c.marketCap || 0,
-    volume: c.volume || c.avgVolume || 0,
-    pe: c.pe || c.peRatio || null,
-    priceToBookRatio: c.priceToBookRatio || null,
-    enterpriseValueMultiple: c.enterpriseValueMultiple || null,
-    grossProfitMargin: c.grossProfitMargin != null ? c.grossProfitMargin : null,
-    debtToEquity: c.debtToEquity != null ? c.debtToEquity : null,
-    currentRatio: c.currentRatio != null ? c.currentRatio : null,
-    roe: c.returnOnEquity != null ? c.returnOnEquity : (c.roe != null ? c.roe : null),
-    analystEstimateCount: c.numberOfAnalystOpinions || c.analystEstimateCount || null,
-    lastAnnualDividend: c.lastAnnualDividend || null,
-    isEtf: c.isEtf || false,
-    isFund: c.isFund || false,
-  };
-}
-
-function calcScore(c, f) {
+function calcScore(c) {
+  const r = c.ratios;
+  if (!r) return 0;
   let s = 0, w = 0;
   function add(wid, val, fn) {
     const wt = weights[wid] || 0;
-    if (!wt || val == null || isNaN(val)) return;
+    if (!wt || val === null || isNaN(val)) return;
     s += Math.min(fn(val), 2) * wt;
     w += wt;
   }
-  if (c.pe > 0 && c.pe < 200) add('w-pe', c.pe, val => Math.min(f.peMax / val, 2));
-  if (c.priceToBookRatio > 0) add('w-pb', c.priceToBookRatio, val => Math.min(f.pbMax / val, 2));
-  if (c.enterpriseValueMultiple > 0) add('w-ev', c.enterpriseValueMultiple, val => Math.min(f.evMax / val, 2));
-  if (c.grossProfitMargin > 0) add('w-gm', c.grossProfitMargin * 100, val => Math.min(val / 40, 2));
-  if (c.roe > 0) add('w-roe', c.roe * 100, val => Math.min(val / 15, 2));
-  const cov = c.analystEstimateCount || 0;
-  add('w-cov', cov, val => Math.min((f.covMax + 1) / (val + 0.5), 2));
+  if (r.pe_ratio > 0 && r.pe_ratio < 200) add('w-pe', r.pe_ratio, val => Math.min(30 / val, 2));
+  if (r.fcf_yield > 0) add('w-fcfy', r.fcf_yield, val => Math.min(val / 0.05, 2));
+  if (r.ev_ebitda > 0) add('w-ev', r.ev_ebitda, val => Math.min(20 / val, 2));
+  if (r.gross_margin > 0) add('w-gm', r.gross_margin, val => Math.min(val / 0.4, 2));
+  if (r.roe !== null) add('w-roe', r.roe, val => Math.min(val / 0.15, 2));
+  if (r.debt_to_equity !== null && r.debt_to_equity >= 0) add('w-de', r.debt_to_equity, val => Math.min(2 / (val + 0.5), 2));
   return w > 0 ? Math.round((s / w / 2) * 100) : 0;
+}
+
+function fmt(val, type) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  if (type === 'x') return val.toFixed(1) + '×';
+  if (type === '%') return (val * 100).toFixed(1) + '%';
+  if (type === 'mc') {
+    const b = val / 1e9;
+    return b >= 1 ? '$' + b.toFixed(2) + 'B' : '$' + Math.round(val / 1e6) + 'M';
+  }
+  return val;
 }
 
 function scoreColor(s) {
   return s >= 70 ? 'var(--accent)' : s >= 45 ? 'var(--amber)' : 'var(--red)';
 }
 
-function covBadge(n) {
-  if (n == null) return '<span class="num">—</span>';
-  const cls = n <= 1 ? 'badge-green' : n <= 3 ? 'badge-amber' : 'badge-red';
-  return `<span class="badge ${cls}">${n}</span>`;
-}
-
-function renderTable(data) {
+function renderTable(data, append) {
   const colMap = {
-    name:  r => r.companyName || '',
-    sector:r => r.sector || '',
-    pe:    r => (r.pe > 0 && r.pe < 500) ? r.pe : 9999,
-    pb:    r => r.priceToBookRatio > 0 ? r.priceToBookRatio : 9999,
-    ev:    r => r.enterpriseValueMultiple > 0 ? r.enterpriseValueMultiple : 9999,
-    gm:    r => r.grossProfitMargin || 0,
-    roe:   r => r.roe || 0,
-    cov:   r => r.analystEstimateCount != null ? r.analystEstimateCount : 99,
+    name: r => r.name || '',
+    sector: r => r.sector || '',
+    mc: r => r.market_cap || 0,
+    pe: r => (r.ratios?.pe_ratio > 0 && r.ratios?.pe_ratio < 500) ? r.ratios.pe_ratio : 9999,
+    pb: r => r.ratios?.pb_ratio > 0 ? r.ratios.pb_ratio : 9999,
+    gm: r => r.ratios?.gross_margin || 0,
+    nm: r => r.ratios?.net_margin || 0,
+    fcfy: r => r.ratios?.fcf_yield || 0,
+    ev: r => r.ratios?.ev_ebitda > 0 ? r.ratios.ev_ebitda : 9999,
+    de: r => r.ratios?.debt_to_equity ?? 9999,
     score: r => r.score || 0,
   };
 
   const sorted = [...data].sort((a, b) => {
-    const av = colMap[sortCol](a), bv = colMap[sortCol](b);
+    const av = colMap[sortCol]?.(a) ?? 0, bv = colMap[sortCol]?.(b) ?? 0;
     return typeof av === 'string' ? av.localeCompare(bv) * sortDir : (av - bv) * sortDir;
   });
 
-  if (sorted.length === 0) {
-    document.getElementById('table-wrap').innerHTML = '<div class="state-msg"><div class="icon">◎</div><p>No companies match your filters</p><small>Try relaxing one or two thresholds</small></div>';
+  if (sorted.length === 0 && !append) {
+    document.getElementById('table-wrap').innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">No results</div><p>Try relaxing your filters</p></div>';
     return;
   }
 
   const headers = [
-    { key:'name',   label:'Company' },
-    { key:'sector', label:'Sector' },
-    { key:'pe',     label:'P/E',          right:true },
-    { key:'pb',     label:'P/B',          right:true },
-    { key:'ev',     label:'EV/EBITDA',    right:true },
-    { key:'gm',     label:'Gross margin', right:true },
-    { key:'roe',    label:'ROE',          right:true },
-    { key:'cov',    label:'Coverage',     right:true },
-    { key:'score',  label:'Score',        right:true },
+    {key:'name',label:'Company'},{key:'sector',label:'Sector'},
+    {key:'mc',label:'Mkt cap',r:true},{key:'pe',label:'P/E',r:true},
+    {key:'pb',label:'P/B',r:true},{key:'gm',label:'Gross margin',r:true},
+    {key:'nm',label:'Net margin',r:true},{key:'fcfy',label:'FCF yield',r:true},
+    {key:'ev',label:'EV/EBITDA',r:true},{key:'de',label:'D/E',r:true},
+    {key:'score',label:'Score',r:true},
   ];
 
   const thead = headers.map(h => {
-    const arrow = sortCol === h.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
-    return `<th class="${sortCol === h.key ? 'sorted' : ''}" onclick="sortBy('${h.key}')" style="${h.right ? 'text-align:right' : ''}">${h.label}${arrow}</th>`;
+    const arr = sortCol === h.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
+    return `<th class="${sortCol===h.key?'sorted':''} ${h.r?'r':''}" onclick="sortBy('${h.key}')">${h.label}${arr}</th>`;
   }).join('');
 
   const tbody = sorted.map(c => {
+    const r = c.ratios;
     const sc = c.score;
-    const pe   = c.pe > 0 && c.pe < 500 ? c.pe.toFixed(1) + '×' : '—';
-    const pb   = c.priceToBookRatio > 0 ? c.priceToBookRatio.toFixed(2) + '×' : '—';
-    const ev   = c.enterpriseValueMultiple > 0 ? c.enterpriseValueMultiple.toFixed(1) + '×' : '—';
-    const gm   = c.grossProfitMargin > 0 ? (c.grossProfitMargin * 100).toFixed(1) + '%' : '—';
-    const roe  = c.roe > 0 ? (c.roe * 100).toFixed(1) + '%' : '—';
+    const pe = r?.pe_ratio > 0 && r?.pe_ratio < 500 ? r.pe_ratio.toFixed(1)+'×' : '—';
+    const pb = r?.pb_ratio > 0 ? r.pb_ratio.toFixed(2)+'×' : '—';
+    const gm = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
+    const nm = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
+    const fcfy = r?.fcf_yield != null && r.fcf_yield > 0 ? (r.fcf_yield*100).toFixed(1)+'%' : '—';
+    const ev = r?.ev_ebitda > 0 ? r.ev_ebitda.toFixed(1)+'×' : '—';
+    const de = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
     return `<tr>
-      <td><span class="company-name">${(c.companyName||'').substring(0,28)}</span><span class="company-ticker">${c.symbol||''}</span></td>
-      <td><span style="font-size:11px;color:var(--text3)">${(c.sector||'').substring(0,14)}</span></td>
-      <td><span class="num">${pe}</span></td>
-      <td><span class="num">${pb}</span></td>
-      <td><span class="num">${ev}</span></td>
-      <td><span class="num">${gm}</span></td>
-      <td><span class="num">${roe}</span></td>
-      <td style="text-align:right">${covBadge(c.analystEstimateCount)}</td>
-      <td><div class="score-wrap"><span class="score-num" style="color:${scoreColor(sc)}">${sc}</span><div class="score-track"><div class="score-fill" style="width:${sc}%;background:${scoreColor(sc)}"></div></div></div></td>
+      <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
+      <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
+      <td class="r"><span class="num">${fmt(c.market_cap,'mc')}</span></td>
+      <td class="r"><span class="num">${pe}</span></td>
+      <td class="r"><span class="num">${pb}</span></td>
+      <td class="r"><span class="num">${gm}</span></td>
+      <td class="r"><span class="num">${nm}</span></td>
+      <td class="r"><span class="num">${fcfy}</span></td>
+      <td class="r"><span class="num">${ev}</span></td>
+      <td class="r"><span class="num">${de}</span></td>
+      <td class="r"><div class="score-wrap"><span class="score-num" style="color:${scoreColor(sc)}">${sc}</span><div class="score-track"><div class="score-fill" style="width:${sc}%;background:${scoreColor(sc)}"></div></div></div></td>
     </tr>`;
   }).join('');
 
-  const hasMore = profileOffset < allScreenerResults.length;
-  const loadMoreBtn = hasMore ? `<div style="text-align:center;padding:16px;border-top:0.5px solid var(--border)"><button class="btn" onclick="loadMoreProfiles()" style="font-size:12px">Load next ${Math.min(BATCH_SIZE, allScreenerResults.length - profileOffset)} companies</button><span style="font-size:11px;color:var(--text3);margin-left:12px">${profileOffset} of ${allScreenerResults.length} screened</span></div>` : `<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3);border-top:0.5px solid var(--border)">All ${allScreenerResults.length} companies loaded</div>`;
+  if (append) {
+    const existing = document.querySelector('#table-wrap table tbody');
+    if (existing) { existing.innerHTML += tbody; return; }
+  }
 
-  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>${loadMoreBtn}`;
+  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
 }
 
 function sortBy(col) {
-  sortDir = (sortCol === col) ? sortDir * -1 : (['score','gm','roe'].includes(col) ? -1 : 1);
+  sortDir = sortCol === col ? sortDir * -1 : (['score','gm','nm','fcfy','roe'].includes(col) ? -1 : 1);
   sortCol = col;
   renderTable(lastResults);
 }
 
 function updateStats(data) {
   document.getElementById('s-count').textContent = data.length;
-  const pes = data.filter(c => c.pe > 0 && c.pe < 200).map(c => c.pe);
+  const pes = data.filter(c => c.ratios?.pe_ratio > 0 && c.ratios?.pe_ratio < 200).map(c => c.ratios.pe_ratio);
   document.getElementById('s-pe').textContent = pes.length ? (pes.reduce((a,b)=>a+b,0)/pes.length).toFixed(1)+'×' : '—';
-  const covs = data.filter(c => c.analystEstimateCount != null).map(c => c.analystEstimateCount);
-  document.getElementById('s-cov').textContent = covs.length ? (covs.reduce((a,b)=>a+b,0)/covs.length).toFixed(1) : '—';
-  const gms = data.filter(c => c.grossProfitMargin > 0).map(c => c.grossProfitMargin*100);
+  const gms = data.filter(c => c.ratios?.gross_margin > 0).map(c => c.ratios.gross_margin*100);
   document.getElementById('s-gm').textContent = gms.length ? (gms.reduce((a,b)=>a+b,0)/gms.length).toFixed(1)+'%' : '—';
+  const fcfys = data.filter(c => c.ratios?.fcf_yield > 0).map(c => c.ratios.fcf_yield*100);
+  document.getElementById('s-fcfy').textContent = fcfys.length ? (fcfys.reduce((a,b)=>a+b,0)/fcfys.length).toFixed(1)+'%' : '—';
+  document.getElementById('s-time').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+async function runScreen() {
+  const btn = document.getElementById('run-btn');
+  btn.textContent = 'Running...';
+  btn.disabled = true;
+  setStatus('querying...', '');
+  document.getElementById('table-wrap').innerHTML = '<div class="state"><div class="spinner"></div><p>Querying Supabase...</p></div>';
+
+  try {
+    const params = buildQuery();
+    const data = await supabaseQuery(params);
+    if (!Array.isArray(data)) throw new Error('Unexpected response from Supabase');
+
+    setStatus('filtering...', '');
+    const filtered = applyRatioFilters(data);
+    const scored = filtered.map(c => ({ ...c, score: calcScore(c) }));
+    lastResults = scored;
+
+    setStatus(`connected · ${scored.length} results`, 'live');
+    renderTable(scored);
+    updateStats(scored);
+
+  } catch(e) {
+    setStatus('error: ' + e.message, 'err');
+    document.getElementById('table-wrap').innerHTML = `<div class="state"><p style="color:var(--red)">${e.message}</p><small>Check your connection and try again</small></div>`;
+  } finally {
+    btn.textContent = 'Run screen';
+    btn.disabled = false;
+  }
 }
 </script>
 </body>
