@@ -474,7 +474,8 @@ async function enrichWithLivePrices(companies) {
     const prices = await Promise.all(batch.map(c => fetchPrice(c.symbol)));
     batch.forEach((c, idx) => {
       const livePrice = prices[idx];
-      if (!livePrice || !c.market_cap || !c.price || c.price <= 0) return;
+      if (!livePrice) { if(c.symbol==='MSFT') console.log('MSFT: no live price'); return; }
+      if (!c.market_cap || !c.price || c.price <= 0) { if(c.symbol==='MSFT') console.log('MSFT: bad market cap or price', c.market_cap, c.price); return; }
       const r = Array.isArray(c.ratios) ? c.ratios[0] : c.ratios;
       if (!r) return;
       if (c.symbol === 'MSFT') console.log('MSFT live debug:', { livePrice, sharesOut: c.market_cap/c.price, revPerShare: r.revenue_per_share, ebitdaMargin: r.ebitda_margin });
