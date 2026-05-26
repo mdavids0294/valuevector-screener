@@ -475,12 +475,12 @@ async function enrichWithLivePrices(companies) {
     batch.forEach((c, idx) => {
       const livePrice = prices[idx];
       if (!livePrice || !c.market_cap || !c.price || c.price <= 0) return;
-      const r = c.ratios;
+      const r = Array.isArray(c.ratios) ? c.ratios[0] : c.ratios;
       if (!r) return;
+      if (c.symbol === 'MSFT') console.log('MSFT live debug:', { livePrice, sharesOut: c.market_cap/c.price, revPerShare: r.revenue_per_share, ebitdaMargin: r.ebitda_margin });
 
       // Calculate shares outstanding from stored market cap / stored price
       const sharesOut = c.market_cap / c.price;
-      if (c.symbol === 'MSFT') console.log('MSFT debug:', { livePrice, sharesOut, rev: c.ratios?.revenue_per_share, ebitda_m: c.ratios?.ebitda_margin, bvps: c.ratios?.book_value_per_share, de: c.ratios?.debt_to_equity, cash: c.ratios?.cash_per_share });
 
       // Live market cap
       const liveMktCap = livePrice * sharesOut;
