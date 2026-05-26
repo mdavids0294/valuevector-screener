@@ -483,22 +483,20 @@ function setStatus(text, state) {
 let sortCol = 'score', sortDir = -1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const headers = {
+  const SELECT = `symbol,name,sector,market_cap,volume,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share)`;
+  const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
-    'Accept': 'application/json',
-    'Prefer': 'count=exact'
+    'Accept': 'application/json'
   };
-
-  const page1 = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,market_cap,volume,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share)&${params}&offset=0&limit=1000`, { headers });
-  if (!page1.ok) throw new Error(`Supabase error ${page1.status}`);
-  const data1 = await page1.json();
-
-  const page2 = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,market_cap,volume,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share)&${params}&offset=1000&limit=1000`, { headers });
-  if (!page2.ok) throw new Error(`Supabase error ${page2.status}`);
-  const data2 = await page2.json();
-
-  return [...data1, ...data2];
+  const base = `${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&${params}`;
+  const r1 = await fetch(`${base}&offset=0&limit=1000`, { headers: hdrs });
+  if (!r1.ok) throw new Error(`Supabase error ${r1.status}`);
+  const d1 = await r1.json();
+  if (d1.length < 1000) return d1;
+  const r2 = await fetch(`${base}&offset=1000&limit=1000`, { headers: hdrs });
+  const d2 = r2.ok ? await r2.json() : [];
+  return [...d1, ...(Array.isArray(d2) ? d2 : [])];
 }
 
 async function fetchPrice(symbol) {
@@ -526,7 +524,7 @@ function buildQuery() {
   if (activeSectors.length < 11 && activeSectors.length > 0) {
     params += `sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})&`;
   }
-  params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true&limit=2000`;
+  params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true`;
   return params;
 }
 
@@ -700,8 +698,7 @@ async function runScreen() {
     const scored = filtered.map(c => ({ ...c, score: calcScore(c) }));
     lastResults = scored;
 
-    const hitLimit = data.length >= 2000;
-setStatus(`connected · ${scored.length} results${hitLimit ? ' (filtered from 2000+ — narrow your filters)' : ''}`, 'live');
+    setStatus(`connected · ${scored.length} results`, 'live');
     renderTable(scored);
     updateStats(scored);
 
