@@ -420,7 +420,7 @@ function buildQuery() {
   const volMin = v('vol') * 1e3;
 
   let params = `market_cap=gte.${Math.round(mcMin)}&market_cap=lte.${Math.round(mcMax)}`;
-  if (volMin > 0 && false) params += `&avg_volume=gte.${Math.round(volMin)}`;
+  if (volMin > 0) params += `&volume=gte.${Math.round(volMin)}`;
   if (activeSectors.length < 11 && activeSectors.length > 0) {
     params += `&sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})`;
   }
