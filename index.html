@@ -79,13 +79,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .tog-ctrl span{color:var(--text3);cursor:pointer}
 .tog-ctrl span:hover{color:var(--accent)}
 
-/* WEIGHTS */
-.weight-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2);padding:2px 0}
-.pips{display:flex;gap:3px}
-.pip{width:8px;height:8px;border-radius:2px;background:var(--border2);cursor:pointer;border:none;padding:0;transition:background .1s}
-.pip.on{background:var(--accent)}
-
-/* MAIN */
+/* STATES */
 .main{min-height:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
 
 /* STATS */
@@ -276,17 +270,6 @@ a{color:var(--accent);text-decoration:none}
       </div>
     </div>
 
-    <!-- Score weights -->
-    <div class="section">
-      <div class="section-header" onclick="toggleSec(this)">
-        <span class="section-title">Score weights</span>
-        <span class="chevron open">▼</span>
-      </div>
-      <div class="section-body">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-family:var(--mono)">Click pips to set importance (0–5)</div>
-        <div id="weights-ui"></div>
-      </div>
-    </div>
 
   </aside>
 
@@ -403,32 +386,6 @@ function volLabel(idx) {
   return '$' + Math.round(val/1e3) + 'K';
 }
 
-const WEIGHTS_CONFIG = [
-  { id: 'w-pe',   label: 'Low P/E',     default: 3 },
-  { id: 'w-fcfy', label: 'FCF yield',   default: 4 },
-  { id: 'w-ev',   label: 'EV/EBITDA',   default: 2 },
-  { id: 'w-gm',   label: 'Gross margin',default: 2 },
-  { id: 'w-roe',  label: 'ROE',         default: 2 },
-  { id: 'w-de',   label: 'Low debt',    default: 2 },
-];
-const weights = {};
-WEIGHTS_CONFIG.forEach(w => weights[w.id] = w.default);
-
-function buildWeights() {
-  document.getElementById('weights-ui').innerHTML = WEIGHTS_CONFIG.map(w => `
-    <div class="weight-row">
-      <span>${w.label}</span>
-      <div class="pips" data-wid="${w.id}">
-        ${[1,2,3,4,5].map(i => `<button class="pip ${i <= weights[w.id] ? 'on' : ''}" onclick="setWeight('${w.id}',${i},this.parentElement)"></button>`).join('')}
-      </div>
-    </div>`).join('');
-}
-function setWeight(id, v, el) {
-  weights[id] = v;
-  el.querySelectorAll('.pip').forEach((p,i) => p.classList.toggle('on', i < v));
-}
-buildWeights();
-
 function toggleSec(h) {
   h.nextElementSibling.classList.toggle('collapsed');
   h.querySelector('.chevron').classList.toggle('open');
@@ -508,6 +465,223 @@ async function fetchPrice(symbol) {
   } catch(e) { return null; }
 }
 
+async function enrichWithLivePrices(companies) {
+  // Fetch live prices in parallel batches of 20
+  const BATCH = 20;
+  const results = [...companies];
+  for (let i = 0; i < results.length; i += BATCH) {
+    const batch = results.slice(i, i + BATCH);
+    const prices = await Promise.all(batch.map(c => fetchPrice(c.symbol)));
+    batch.forEach((c, idx) => {
+      const livePrice = prices[idx];
+      if (!livePrice || !c.market_cap || !c.price || c.price <= 0) return;
+      const r = c.ratios;
+      if (!r) return;
+
+      // Calculate shares outstanding from stored market cap / stored price
+      const sharesOut = c.market_cap / c.price;
+
+      // Live market cap
+      const liveMktCap = livePrice * sharesOut;
+
+      // Live price-dependent ratios
+      const livepe   = r.eps > 0 ? livePrice / r.eps : null;
+      const livepb   = r.book_value_per_share > 0 ? livePrice / r.book_value_per_share : null;
+      const liveps   = r.revenue_per_share > 0 ? livePrice / r.revenue_per_share : null;
+      const livepfcf = r.fcf_per_share > 0 ? livePrice / r.fcf_per_share : null;
+      const livefcfy = r.fcf_per_share > 0 ? r.fcf_per_share / livePrice : null;
+      const liveey   = r.eps > 0 ? r.eps / livePrice : null;
+
+      // Live EV calculation
+      const totalEquity = r.book_value_per_share * sharesOut;
+      const totalDebt   = r.debt_to_equity != null ? r.debt_to_equity * totalEquity : 0;
+      const totalCash   = r.cash_per_share * sharesOut;
+      const liveEV      = liveMktCap + totalDebt - totalCash;
+
+      // Live EV multiples
+      const revenue      = r.revenue_per_share * sharesOut;
+      const ebitda       = revenue * (r.ebitda_margin || 0);
+      const liveEvEbitda = ebitda > 0 ? liveEV / ebitda : null;
+      const liveEvRev    = revenue > 0 ? liveEV / revenue : null;
+
+      // Attach live ratios to the company object
+      c.live = {
+        price:      livePrice,
+        market_cap: liveMktCap,
+        pe:         livepe,
+        pb:         livepb,
+        ps:         liveps,
+        pfcf:       livepfcf,
+        fcf_yield:  livefcfy,
+        earnings_yield: liveey,
+        ev_ebitda:  liveEvEbitda,
+        ev_revenue: liveEvRev,
+      };
+    });
+    setStatus(`fetching prices... ${Math.min(i + BATCH, results.length)}/${results.length}`, '');
+  }
+  return results;
+}
+
+function getLive(c, field) {
+  return c.live?.[field] ?? c.ratios?.[field] ?? null;
+}
+
+function fmtVal(val, type) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  if (type === 'x') return val.toFixed(1) + '×';
+  if (type === '%') return (val * 100).toFixed(1) + '%';
+  if (type === 'mc') {
+    if (val >= 1e12) return '$' + (val/1e12).toFixed(2) + 'T';
+    if (val >= 1e9) return '$' + (val/1e9).toFixed(2) + 'B';
+    return '$' + Math.round(val/1e6) + 'M';
+  }
+  return val;
+}
+
+function renderTable(data) {
+  const colMap = {
+    name:      c => c.name || '',
+    sector:    c => c.sector || '',
+    mc:        c => c.live?.market_cap || c.market_cap || 0,
+    pe:        c => { const v = c.live?.pe ?? c.ratios?.pe_ratio; return (v > 0 && v < 500) ? v : 9999; },
+    pb:        c => { const v = c.live?.pb ?? c.ratios?.pb_ratio; return v > 0 ? v : 9999; },
+    gm:        c => c.ratios?.gross_margin || 0,
+    nm:        c => c.ratios?.net_margin || 0,
+    fcfy:      c => c.live?.fcf_yield ?? c.ratios?.fcf_yield ?? 0,
+    ev:        c => { const v = c.live?.ev_ebitda ?? c.ratios?.ev_ebitda; return v > 0 ? v : 9999; },
+    ev_rev:    c => { const v = c.live?.ev_revenue; return v > 0 ? v : 9999; },
+    de:        c => c.ratios?.debt_to_equity ?? 9999,
+  };
+
+  const sorted = [...data].sort((a, b) => {
+    const av = colMap[sortCol]?.(a) ?? 0, bv = colMap[sortCol]?.(b) ?? 0;
+    return typeof av === 'string' ? av.localeCompare(bv) * sortDir : (av - bv) * sortDir;
+  });
+
+  if (sorted.length === 0) {
+    document.getElementById('table-wrap').innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">No results</div><p>Try relaxing your filters</p></div>';
+    return;
+  }
+
+  const hasLive = sorted.some(c => c.live);
+  const liveTag = hasLive ? ' <span style="font-size:8px;color:var(--accent2);opacity:0.7">live</span>' : '';
+
+  const headers = [
+    {key:'name',   label:'Company'},
+    {key:'sector', label:'Sector'},
+    {key:'mc',     label:'Mkt cap',      r:true, live:true},
+    {key:'pe',     label:'P/E',          r:true, live:true},
+    {key:'pb',     label:'P/B',          r:true, live:true},
+    {key:'gm',     label:'Gross margin', r:true},
+    {key:'nm',     label:'Net margin',   r:true},
+    {key:'fcfy',   label:'FCF yield',    r:true, live:true},
+    {key:'ev',     label:'EV/EBITDA',    r:true, live:true},
+    {key:'ev_rev', label:'EV/Rev',       r:true, live:true},
+    {key:'de',     label:'D/E',          r:true},
+  ];
+
+  const thead = headers.map(h => {
+    const arr = sortCol === h.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
+    const tag = (h.live && hasLive) ? liveTag : '';
+    return `<th class="${sortCol===h.key?'sorted':''} ${h.r?'r':''}" onclick="sortBy('${h.key}')">${h.label}${tag}${arr}</th>`;
+  }).join('');
+
+  const tbody = sorted.map(c => {
+    const r = c.ratios;
+    const lp = c.live;
+    const mc   = fmtVal(lp?.market_cap || c.market_cap, 'mc');
+    const peV  = lp?.pe ?? r?.pe_ratio;
+    const pbV  = lp?.pb ?? r?.pb_ratio;
+    const pe   = peV > 0 && peV < 500 ? peV.toFixed(1)+'×' : '—';
+    const pb   = pbV > 0 ? pbV.toFixed(2)+'×' : '—';
+    const gm   = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
+    const nm   = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
+    const fcfyV = lp?.fcf_yield ?? r?.fcf_yield;
+    const fcfy = fcfyV > 0 ? (fcfyV*100).toFixed(1)+'%' : '—';
+    const evV  = lp?.ev_ebitda ?? r?.ev_ebitda;
+    const ev   = evV > 0 ? evV.toFixed(1)+'×' : '—';
+    const evrV = lp?.ev_revenue;
+    const evr  = evrV > 0 ? evrV.toFixed(1)+'×' : '—';
+    const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
+    return `<tr>
+      <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
+      <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
+      <td class="r"><span class="num">${mc}</span></td>
+      <td class="r"><span class="num">${pe}</span></td>
+      <td class="r"><span class="num">${pb}</span></td>
+      <td class="r"><span class="num">${gm}</span></td>
+      <td class="r"><span class="num">${nm}</span></td>
+      <td class="r"><span class="num">${fcfy}</span></td>
+      <td class="r"><span class="num">${ev}</span></td>
+      <td class="r"><span class="num">${evr}</span></td>
+      <td class="r"><span class="num">${de}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+}
+
+function sortBy(col) {
+  sortDir = sortCol === col ? sortDir * -1 : (['score','gm','nm','fcfy','roe'].includes(col) ? -1 : 1);
+  sortCol = col;
+  renderTable(lastResults);
+}
+
+function updateStats(data) {
+  document.getElementById('s-count').textContent = data.length;
+  const pes = data.filter(c => {
+    const v = c.live?.pe ?? c.ratios?.pe_ratio;
+    return v > 0 && v < 200;
+  }).map(c => c.live?.pe ?? c.ratios.pe_ratio);
+  document.getElementById('s-pe').textContent = pes.length ? (pes.reduce((a,b)=>a+b,0)/pes.length).toFixed(1)+'×' : '—';
+  const gms = data.filter(c => c.ratios?.gross_margin > 0).map(c => c.ratios.gross_margin*100);
+  document.getElementById('s-gm').textContent = gms.length ? (gms.reduce((a,b)=>a+b,0)/gms.length).toFixed(1)+'%' : '—';
+  const fcfys = data.filter(c => {
+    const v = c.live?.fcf_yield ?? c.ratios?.fcf_yield;
+    return v > 0;
+  }).map(c => (c.live?.fcf_yield ?? c.ratios.fcf_yield)*100);
+  document.getElementById('s-fcfy').textContent = fcfys.length ? (fcfys.reduce((a,b)=>a+b,0)/fcfys.length).toFixed(1)+'%' : '—';
+  document.getElementById('s-time').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+async function runScreen() {
+  const btn = document.getElementById('run-btn');
+  btn.textContent = 'Running...';
+  btn.disabled = true;
+  setStatus('querying...', '');
+  document.getElementById('table-wrap').innerHTML = '<div class="state"><div class="spinner"></div><p>Querying Supabase...</p></div>';
+
+  try {
+    const params = buildQuery();
+    const data = await supabaseQuery(params);
+    if (!Array.isArray(data)) throw new Error('Unexpected response from Supabase');
+
+    setStatus('filtering...', '');
+    const filtered = applyRatioFilters(data);
+
+    // Only fetch live prices if results are manageable
+    if (filtered.length <= 200) {
+      setStatus('fetching live prices...', '');
+      await enrichWithLivePrices(filtered);
+    } else {
+      setStatus(`${filtered.length} results — narrow filters for live prices`, 'live');
+    }
+
+    lastResults = filtered;
+    setStatus(`connected · ${filtered.length} results${filtered.length <= 200 ? ' · live prices' : ''}`, 'live');
+    renderTable(filtered);
+    updateStats(filtered);
+
+  } catch(e) {
+    setStatus('error: ' + e.message, 'err');
+    document.getElementById('table-wrap').innerHTML = `<div class="state"><p style="color:var(--red)">${e.message}</p><small>Check your connection and try again</small></div>`;
+  } finally {
+    btn.textContent = 'Run screen';
+    btn.disabled = false;
+  }
+}
+
 function buildQuery() {
   const activeSectors = Array.from(document.querySelectorAll('.tog.active[data-sector]')).map(el => el.dataset.sector);
   const mcMinIdx = v('mc-min');
@@ -557,159 +731,6 @@ function applyRatioFilters(companies) {
   });
 }
 
-function calcScore(c) {
-  const r = c.ratios;
-  if (!r) return 0;
-  let s = 0, w = 0;
-  function add(wid, val, fn) {
-    const wt = weights[wid] || 0;
-    if (!wt || val === null || isNaN(val)) return;
-    s += Math.min(fn(val), 2) * wt;
-    w += wt;
-  }
-  if (r.pe_ratio > 0 && r.pe_ratio < 200) add('w-pe', r.pe_ratio, val => Math.min(30 / val, 2));
-  if (r.fcf_yield > 0) add('w-fcfy', r.fcf_yield, val => Math.min(val / 0.05, 2));
-  if (r.ev_ebitda > 0) add('w-ev', r.ev_ebitda, val => Math.min(20 / val, 2));
-  if (r.gross_margin > 0) add('w-gm', r.gross_margin, val => Math.min(val / 0.4, 2));
-  if (r.roe !== null) add('w-roe', r.roe, val => Math.min(val / 0.15, 2));
-  if (r.debt_to_equity !== null && r.debt_to_equity >= 0) add('w-de', r.debt_to_equity, val => Math.min(2 / (val + 0.5), 2));
-  return w > 0 ? Math.round((s / w / 2) * 100) : 0;
-}
-
-function fmtVal(val, type) {
-  if (val === null || val === undefined || isNaN(val)) return '—';
-  if (type === 'x') return val.toFixed(1) + '×';
-  if (type === '%') return (val * 100).toFixed(1) + '%';
-  if (type === 'mc') {
-    if (val >= 1e12) return '$' + (val/1e12).toFixed(2) + 'T';
-    if (val >= 1e9) return '$' + (val/1e9).toFixed(2) + 'B';
-    return '$' + Math.round(val/1e6) + 'M';
-  }
-  return val;
-}
-
-function scoreColor(s) {
-  return s >= 70 ? 'var(--accent)' : s >= 45 ? 'var(--amber)' : 'var(--red)';
-}
-
-function renderTable(data) {
-  const colMap = {
-    name:   r => r.name || '',
-    sector: r => r.sector || '',
-    mc:     r => r.market_cap || 0,
-    pe:     r => (r.ratios?.pe_ratio > 0 && r.ratios?.pe_ratio < 500) ? r.ratios.pe_ratio : 9999,
-    pb:     r => r.ratios?.pb_ratio > 0 ? r.ratios.pb_ratio : 9999,
-    gm:     r => r.ratios?.gross_margin || 0,
-    nm:     r => r.ratios?.net_margin || 0,
-    fcfy:   r => r.ratios?.fcf_yield || 0,
-    ev:     r => r.ratios?.ev_ebitda > 0 ? r.ratios.ev_ebitda : 9999,
-    de:     r => r.ratios?.debt_to_equity ?? 9999,
-    score:  r => r.score || 0,
-  };
-
-  const sorted = [...data].sort((a, b) => {
-    const av = colMap[sortCol]?.(a) ?? 0, bv = colMap[sortCol]?.(b) ?? 0;
-    return typeof av === 'string' ? av.localeCompare(bv) * sortDir : (av - bv) * sortDir;
-  });
-
-  if (sorted.length === 0) {
-    document.getElementById('table-wrap').innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">No results</div><p>Try relaxing your filters</p></div>';
-    return;
-  }
-
-  const headers = [
-    {key:'name',  label:'Company'},
-    {key:'sector',label:'Sector'},
-    {key:'mc',    label:'Mkt cap',     r:true},
-    {key:'pe',    label:'P/E',         r:true},
-    {key:'pb',    label:'P/B',         r:true},
-    {key:'gm',    label:'Gross margin',r:true},
-    {key:'nm',    label:'Net margin',  r:true},
-    {key:'fcfy',  label:'FCF yield',   r:true},
-    {key:'ev',    label:'EV/EBITDA',   r:true},
-    {key:'de',    label:'D/E',         r:true},
-    {key:'score', label:'Score',       r:true},
-  ];
-
-  const thead = headers.map(h => {
-    const arr = sortCol === h.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
-    return `<th class="${sortCol===h.key?'sorted':''} ${h.r?'r':''}" onclick="sortBy('${h.key}')">${h.label}${arr}</th>`;
-  }).join('');
-
-  const tbody = sorted.map(c => {
-    const r = c.ratios;
-    const sc = c.score;
-    const pe   = r?.pe_ratio > 0 && r?.pe_ratio < 500 ? r.pe_ratio.toFixed(1)+'×' : '—';
-    const pb   = r?.pb_ratio > 0 ? r.pb_ratio.toFixed(2)+'×' : '—';
-    const gm   = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
-    const nm   = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
-    const fcfy = r?.fcf_yield != null && r.fcf_yield > 0 ? (r.fcf_yield*100).toFixed(1)+'%' : '—';
-    const ev   = r?.ev_ebitda > 0 ? r.ev_ebitda.toFixed(1)+'×' : '—';
-    const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
-    return `<tr>
-      <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
-      <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
-      <td class="r"><span class="num">${fmtVal(c.market_cap,'mc')}</span></td>
-      <td class="r"><span class="num">${pe}</span></td>
-      <td class="r"><span class="num">${pb}</span></td>
-      <td class="r"><span class="num">${gm}</span></td>
-      <td class="r"><span class="num">${nm}</span></td>
-      <td class="r"><span class="num">${fcfy}</span></td>
-      <td class="r"><span class="num">${ev}</span></td>
-      <td class="r"><span class="num">${de}</span></td>
-      <td class="r"><div class="score-wrap"><span class="score-num" style="color:${scoreColor(sc)}">${sc}</span><div class="score-track"><div class="score-fill" style="width:${sc}%;background:${scoreColor(sc)}"></div></div></div></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
-}
-
-function sortBy(col) {
-  sortDir = sortCol === col ? sortDir * -1 : (['score','gm','nm','fcfy','roe'].includes(col) ? -1 : 1);
-  sortCol = col;
-  renderTable(lastResults);
-}
-
-function updateStats(data) {
-  document.getElementById('s-count').textContent = data.length;
-  const pes = data.filter(c => c.ratios?.pe_ratio > 0 && c.ratios?.pe_ratio < 200).map(c => c.ratios.pe_ratio);
-  document.getElementById('s-pe').textContent = pes.length ? (pes.reduce((a,b)=>a+b,0)/pes.length).toFixed(1)+'×' : '—';
-  const gms = data.filter(c => c.ratios?.gross_margin > 0).map(c => c.ratios.gross_margin*100);
-  document.getElementById('s-gm').textContent = gms.length ? (gms.reduce((a,b)=>a+b,0)/gms.length).toFixed(1)+'%' : '—';
-  const fcfys = data.filter(c => c.ratios?.fcf_yield > 0).map(c => c.ratios.fcf_yield*100);
-  document.getElementById('s-fcfy').textContent = fcfys.length ? (fcfys.reduce((a,b)=>a+b,0)/fcfys.length).toFixed(1)+'%' : '—';
-  document.getElementById('s-time').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-}
-
-async function runScreen() {
-  const btn = document.getElementById('run-btn');
-  btn.textContent = 'Running...';
-  btn.disabled = true;
-  setStatus('querying...', '');
-  document.getElementById('table-wrap').innerHTML = '<div class="state"><div class="spinner"></div><p>Querying Supabase...</p></div>';
-
-  try {
-    const params = buildQuery();
-    const data = await supabaseQuery(params);
-    if (!Array.isArray(data)) throw new Error('Unexpected response from Supabase');
-
-    setStatus('filtering...', '');
-    const filtered = applyRatioFilters(data);
-    const scored = filtered.map(c => ({ ...c, score: calcScore(c) }));
-    lastResults = scored;
-
-    setStatus(`connected · ${scored.length} results`, 'live');
-    renderTable(scored);
-    updateStats(scored);
-
-  } catch(e) {
-    setStatus('error: ' + e.message, 'err');
-    document.getElementById('table-wrap').innerHTML = `<div class="state"><p style="color:var(--red)">${e.message}</p><small>Check your connection and try again</small></div>`;
-  } finally {
-    btn.textContent = 'Run screen';
-    btn.disabled = false;
-  }
-}
 </script>
 </body>
 </html>
