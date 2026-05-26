@@ -127,7 +127,7 @@ th{padding:9px 14px;text-align:left;font-family:var(--mono);font-size:9px;letter
 th:hover{color:var(--text2)}
 th.sorted{color:var(--accent)}
 th.r{text-align:right}
-tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s;cursor:default}
+tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s;cursor:pointer}
 tbody tr:hover{background:var(--bg2)}
 td{padding:10px 14px;font-size:12px;color:var(--text2);white-space:nowrap}
 td.r{text-align:right}
@@ -154,6 +154,41 @@ td.r{text-align:right}
 .footer{flex-shrink:0;padding:8px 18px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .footer-text{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.06em}
 a{color:var(--accent);text-decoration:none}
+
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s;pointer-events:none}
+.modal-backdrop.visible{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;transform:translateY(14px);transition:transform .18s}
+.modal-box::-webkit-scrollbar{width:3px}
+.modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.modal-backdrop.visible .modal-box{transform:translateY(0)}
+.modal-header{padding:16px 20px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1}
+.modal-co-name{font-size:16px;font-weight:500;color:var(--text);margin:0 0 4px}
+.modal-co-meta{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.08em}
+.modal-co-meta span{margin-right:10px}
+.modal-price{text-align:right;flex-shrink:0}
+.modal-price-val{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--text)}
+.modal-price-chg{font-family:var(--mono);font-size:10px;display:block;margin-top:2px}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:2px 6px;line-height:1;margin-left:14px;flex-shrink:0}
+.modal-close:hover{color:var(--text2)}
+.modal-body{padding:14px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.modal-stat{background:var(--bg3);border-radius:6px;padding:8px 10px}
+.modal-stat-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.modal-stat-val{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+.modal-sections{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-section-full{grid-column:1/-1}
+.modal-section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.modal-ratio-grid{border:0.5px solid var(--border);border-radius:6px;overflow:hidden}
+.modal-ratio-row{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;border-bottom:0.5px solid var(--border)}
+.modal-ratio-row:last-child{border-bottom:none}
+.modal-ratio-label{font-size:11px;color:var(--text2)}
+.modal-ratio-val{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:500}
+.modal-ratio-val.pos{color:var(--accent)}
+.modal-ratio-val.neg{color:var(--red)}
+.modal-ratio-grid-h{display:grid;border:0.5px solid var(--border);border-radius:6px;overflow:hidden}
+.modal-ratio-grid-h .modal-ratio-row{flex-direction:column;align-items:flex-start;gap:3px;border-bottom:none;border-right:0.5px solid var(--border)}
+.modal-ratio-grid-h .modal-ratio-row:last-child{border-right:none}
 </style>
 </head>
 <body>
@@ -354,6 +389,7 @@ a{color:var(--accent);text-decoration:none}
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
 const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
 const PRICE_PROXY = '/api/price';
@@ -703,7 +739,7 @@ function renderTable(data) {
     const evrV = lp?.ev_revenue;
     const evr  = evrV > 0 ? evrV.toFixed(1)+'×' : '—';
     const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
-    return `<tr>
+    return `<tr onclick="openModal('${c.symbol}')">
       <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
       <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
       <td class="r">${priceCell}</td>
@@ -984,6 +1020,195 @@ function resetFilters() {
 
 loadPresets();
 
+// ── STOCK MODAL ───────────────────────────────────────────────────────────────
+
+// To add a new metric, just add an entry to the relevant section's fields array.
+// fmt options: 'x' (multiple), '%' (ratio→percent), '$' (dollar), 'mc' (market cap), 'raw' (as-is)
+// color: 'pos-good' (green if positive), 'neg-good' (green if negative), null (no color)
+
+const MODAL_SECTIONS = [
+  {
+    title: 'Valuation',
+    fields: [
+      { label: 'P/E',        get: c => c.live?.pe       ?? c.ratios?.pe_ratio,    fmt: 'x',  guard: v => v > 0 && v < 500 },
+      { label: 'P/B',        get: c => c.live?.pb       ?? c.ratios?.pb_ratio,    fmt: 'x',  guard: v => v > 0 },
+      { label: 'P/S',        get: c => c.live?.ps       ?? c.ratios?.ps_ratio,    fmt: 'x',  guard: v => v > 0 },
+      { label: 'P/FCF',      get: c => c.live?.pfcf     ?? c.ratios?.pfcf_ratio,  fmt: 'x',  guard: v => v > 0 },
+      { label: 'EV/EBITDA',  get: c => c.live?.ev_ebitda ?? c.ratios?.ev_ebitda,  fmt: 'x',  guard: v => v > 0 },
+      { label: 'EV/Rev',     get: c => c.live?.ev_revenue,                         fmt: 'x',  guard: v => v > 0 },
+      { label: 'FCF yield',  get: c => c.live?.fcf_yield ?? c.ratios?.fcf_yield,  fmt: '%',  color: 'pos-good' },
+      { label: 'Earnings yield', get: c => c.live?.earnings_yield ?? c.ratios?.earnings_yield, fmt: '%', color: 'pos-good' },
+    ]
+  },
+  {
+    title: 'Profitability',
+    fields: [
+      { label: 'Gross margin',  get: c => c.ratios?.gross_margin,   fmt: '%', color: 'pos-good' },
+      { label: 'EBITDA margin', get: c => c.ratios?.ebitda_margin,  fmt: '%', color: 'pos-good' },
+      { label: 'EBIT margin',   get: c => c.ratios?.ebit_margin,    fmt: '%', color: 'pos-good' },
+      { label: 'Net margin',    get: c => c.ratios?.net_margin,     fmt: '%', color: 'pos-good' },
+      { label: 'ROE',           get: c => c.ratios?.roe,            fmt: '%', color: 'pos-good' },
+      { label: 'ROA',           get: c => c.ratios?.roa,            fmt: '%', color: 'pos-good' },
+    ]
+  },
+  {
+    title: 'Balance sheet',
+    full: true,
+    horizontal: true,
+    fields: [
+      { label: 'Debt / equity',  get: c => c.ratios?.debt_to_equity,           fmt: 'x',  color: 'neg-good' },
+      { label: 'Current ratio',  get: c => c.ratios?.current_ratio,            fmt: 'x',  color: 'pos-good' },
+      { label: 'Cash / share',   get: c => c.ratios?.cash_per_share,           fmt: '$' },
+      { label: 'Book / share',   get: c => c.ratios?.book_value_per_share,     fmt: '$' },
+      { label: 'Interest coverage', get: c => c.ratios?.interest_coverage,     fmt: 'x',  color: 'pos-good' },
+      { label: 'Debt / assets',  get: c => c.ratios?.debt_to_assets,           fmt: '%',  color: 'neg-good' },
+    ]
+  },
+  {
+    title: 'Per share',
+    full: true,
+    horizontal: true,
+    fields: [
+      { label: 'EPS',            get: c => c.ratios?.eps,                fmt: '$' },
+      { label: 'Revenue / sh',   get: c => c.ratios?.revenue_per_share,  fmt: '$' },
+      { label: 'FCF / sh',       get: c => c.ratios?.fcf_per_share,      fmt: '$' },
+      { label: 'Div / sh',       get: c => c.ratios?.dividend_per_share, fmt: '$' },
+      { label: 'Div yield',      get: c => c.ratios?.dividend_yield,     fmt: '%', color: 'pos-good' },
+      { label: 'Payout ratio',   get: c => c.ratios?.dividend_payout_ratio, fmt: '%' },
+    ]
+  },
+];
+
+function fmtModalVal(val, fmt) {
+  if (val === null || val === undefined || isNaN(val)) return null;
+  if (fmt === 'x')  return val.toFixed(1) + '×';
+  if (fmt === '%')  return (val * 100).toFixed(1) + '%';
+  if (fmt === '$')  return '$' + val.toFixed(2);
+  if (fmt === 'mc') {
+    if (val >= 1e12) return '$' + (val/1e12).toFixed(2) + 'T';
+    if (val >= 1e9)  return '$' + (val/1e9).toFixed(2) + 'B';
+    return '$' + Math.round(val/1e6) + 'M';
+  }
+  return String(val);
+}
+
+function colorClass(val, colorMode) {
+  if (!colorMode || val === null || val === undefined) return '';
+  if (colorMode === 'pos-good') return val > 0 ? 'pos' : val < 0 ? 'neg' : '';
+  if (colorMode === 'neg-good') return val < 0 ? 'pos' : val > 0 ? 'neg' : '';
+  return '';
+}
+
+function renderModalSection(section, c) {
+  const gridClass = section.horizontal ? 'modal-ratio-grid-h' : 'modal-ratio-grid';
+  const colStyle  = section.horizontal ? `grid-template-columns:repeat(${Math.min(section.fields.length, 6)},1fr)` : '';
+  const rows = section.fields.map(f => {
+    const val = f.get(c);
+    const passes = f.guard ? f.guard(val) : true;
+    const formatted = (val !== null && val !== undefined && !isNaN(val) && passes) ? fmtModalVal(val, f.fmt) : null;
+    const cls = formatted ? colorClass(val, f.color) : '';
+    const display = formatted ?? '—';
+    return `<div class="modal-ratio-row">
+      <span class="modal-ratio-label">${f.label}</span>
+      <span class="modal-ratio-val ${cls}">${display}</span>
+    </div>`;
+  }).join('');
+  return `<div class="${section.full ? 'modal-section-full' : ''}">
+    <div class="modal-section-title">${section.title}</div>
+    <div class="${gridClass}" style="${colStyle}">${rows}</div>
+  </div>`;
+}
+
+function openModal(symbol) {
+  const c = lastResults.find(r => r.symbol === symbol);
+  if (!c) return;
+  const r = c.ratios;
+  const lp = c.live;
+
+  const priceVal = lp?.price || c.price;
+  const priceFmt = priceVal ? '$' + priceVal.toFixed(2) : '—';
+  const chgPct = lp?.change_pct;
+  const chgFmt = chgPct != null ? (chgPct > 0 ? '▲' : '▼') + Math.abs(chgPct).toFixed(2) + '%' : '';
+  const chgCls = chgPct > 0 ? 'pos' : chgPct < 0 ? 'neg' : '';
+
+  const sharesOut = (c.market_cap && c.price) ? c.market_cap / c.price : null;
+  const liveMC = lp?.market_cap || c.market_cap;
+  const totalEquity = r?.book_value_per_share && sharesOut ? r.book_value_per_share * sharesOut : null;
+  const totalDebt = r?.debt_to_equity != null && totalEquity ? r.debt_to_equity * totalEquity : 0;
+  const totalCash = r?.cash_per_share && sharesOut ? r.cash_per_share * sharesOut : 0;
+  const liveEV = liveMC ? liveMC + totalDebt - totalCash : null;
+
+  const stats = [
+    { label: 'Mkt cap',    val: fmtModalVal(liveMC, 'mc') },
+    { label: 'EV',         val: fmtModalVal(liveEV, 'mc') },
+    { label: 'Shares out', val: sharesOut ? (sharesOut/1e6).toFixed(1) + 'M' : '—' },
+    { label: 'Exchange',   val: c.exchange || '—' },
+  ];
+
+  const statsHtml = stats.map(s =>
+    `<div class="modal-stat"><div class="modal-stat-label">${s.label}</div><div class="modal-stat-val">${s.val ?? '—'}</div></div>`
+  ).join('');
+
+  const sectionsHtml = MODAL_SECTIONS.map(s => renderModalSection(s, c)).join('');
+
+  document.getElementById('modal-backdrop').innerHTML = `
+    <div class="modal-box" id="modal-box">
+      <div class="modal-header">
+        <div>
+          <div class="modal-co-name">${c.name || c.symbol}</div>
+          <div class="modal-co-meta">
+            <span>${c.symbol}</span><span>${c.exchange || ''}</span><span>${c.sector || ''}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start">
+          <div class="modal-price">
+            <span class="modal-price-val">${priceFmt}</span>
+            ${chgFmt ? `<span class="modal-price-chg modal-ratio-val ${chgCls}">${chgFmt}</span>` : ''}
+          </div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-stats">${statsHtml}</div>
+        <div class="modal-sections">${sectionsHtml}</div>
+      </div>
+    </div>`;
+
+  const bd = document.getElementById('modal-backdrop');
+  bd.style.display = 'flex';
+  requestAnimationFrame(() => bd.classList.add('visible'));
+}
+
+function closeModal() {
+  const bd = document.getElementById('modal-backdrop');
+  bd.classList.remove('visible');
+  setTimeout(() => { bd.style.display = 'none'; }, 180);
+}
+
+// Close on backdrop click
+document.getElementById('modal-backdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-backdrop')) closeModal();
+});
+
+// Close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// Expose functions used by inline HTML handlers
+window.syncSlider = syncSlider;
+window.toggleSec = toggleSec;
+window.setSectors = setSectors;
+window.runScreen = runScreen;
+window.sortBy = sortBy;
+window.savePreset = savePreset;
+window.applyPreset = applyPreset;
+window.deletePreset = deletePreset;
+window.openModal = openModal;
+window.closeModal = closeModal;
+
+}); // end DOMContentLoaded
 </script>
+
+<div class="modal-backdrop" id="modal-backdrop" style="display:none"></div>
+
 </body>
 </html>
