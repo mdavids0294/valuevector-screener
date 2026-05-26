@@ -398,7 +398,9 @@ async function supabaseQuery(params) {
     }
   });
   if (!res.ok) throw new Error(`Supabase error ${res.status}`);
-  return res.json();
+  const text = await res.text();
+console.log('Raw response:', text.substring(0, 1000));
+return JSON.parse(text);
 }
 
 async function fetchPrice(symbol) {
