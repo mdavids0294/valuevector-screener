@@ -43,6 +43,9 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
 .dot.live{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
 .dot.err{background:var(--red)}
+.market-status{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);padding:5px 10px;border:0.5px solid var(--border);border-radius:5px}
+.dot.market-live{background:#4ade80;box-shadow:0 0 6px #4ade80}
+.dot.market-closed{background:var(--text3)}
 .btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
 .btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
@@ -113,6 +116,10 @@ td.r{text-align:right}
 .co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .co-ticker{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:1px}
 .num{font-family:var(--mono);font-size:11px}
+.chg-up{color:#4ade80;font-family:var(--mono);font-size:10px}
+.chg-dn{color:var(--red);font-family:var(--mono);font-size:10px}
+.chg-flat{color:var(--text3);font-family:var(--mono);font-size:10px}
+.price-cell{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
 .score-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
 .score-num{font-family:var(--mono);font-size:11px;font-weight:500;min-width:26px;text-align:right}
 .score-track{width:44px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
@@ -143,6 +150,10 @@ a{color:var(--accent);text-decoration:none}
     </div>
   </div>
   <div class="header-right">
+    <div class="market-status" id="market-status">
+      <div class="dot" id="market-dot"></div>
+      <span id="market-text">—</span>
+    </div>
     <div class="status-wrap">
       <div class="dot" id="dot"></div>
       <span id="status-text">ready</span>
@@ -485,63 +496,73 @@ async function fetchPrice(symbol) {
   try {
     const res = await fetch(`${PRICE_PROXY}?symbol=${symbol}`);
     if (!res.ok) return null;
-    const d = await res.json();
-    return d.price || null;
+    return await res.json();
   } catch(e) { return null; }
 }
 
+function isMarketOpen() {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay();
+  const hours = et.getHours() + et.getMinutes() / 60;
+  return day >= 1 && day <= 5 && hours >= 9.5 && hours < 16;
+}
+
+function updateMarketStatus() {
+  const open = isMarketOpen();
+  const dot = document.getElementById('market-dot');
+  const text = document.getElementById('market-text');
+  if (!dot || !text) return;
+  dot.className = 'dot ' + (open ? 'market-live' : 'market-closed');
+  text.textContent = open ? 'Market open' : 'Market closed';
+}
+updateMarketStatus();
+setInterval(updateMarketStatus, 60000);
+
 async function enrichWithLivePrices(companies) {
-  // Fetch live prices in parallel batches of 20
   const BATCH = 20;
   const results = [...companies];
   for (let i = 0; i < results.length; i += BATCH) {
     const batch = results.slice(i, i + BATCH);
-    const prices = await Promise.all(batch.map(c => fetchPrice(c.symbol)));
+    const priceData = await Promise.all(batch.map(c => fetchPrice(c.symbol)));
     batch.forEach((c, idx) => {
-      const livePrice = prices[idx];
+      const pd = priceData[idx];
+      const livePrice = pd?.price;
       if (!livePrice || !c.market_cap || !c.price || c.price <= 0) return;
       const r = Array.isArray(c.ratios) ? c.ratios[0] : c.ratios;
       if (!r) return;
-      if (c.symbol === 'MSFT') console.log('MSFT live debug:', { livePrice, sharesOut: c.market_cap/c.price, revPerShare: r.revenue_per_share, ebitdaMargin: r.ebitda_margin });
 
-      // Calculate shares outstanding from stored market cap / stored price
-      const sharesOut = c.market_cap / c.price;
-
-      // Live market cap
+      const sharesOut  = c.market_cap / c.price;
       const liveMktCap = livePrice * sharesOut;
+      const livepe     = r.eps > 0 ? livePrice / r.eps : null;
+      const livepb     = r.book_value_per_share > 0 ? livePrice / r.book_value_per_share : null;
+      const liveps     = r.revenue_per_share > 0 ? livePrice / r.revenue_per_share : null;
+      const livepfcf   = r.fcf_per_share > 0 ? livePrice / r.fcf_per_share : null;
+      const livefcfy   = r.fcf_per_share > 0 ? r.fcf_per_share / livePrice : null;
+      const liveey     = r.eps > 0 ? r.eps / livePrice : null;
+      const totalEquity   = r.book_value_per_share * sharesOut;
+      const totalDebt     = r.debt_to_equity != null ? r.debt_to_equity * totalEquity : 0;
+      const totalCash     = r.cash_per_share * sharesOut;
+      const liveEV        = liveMktCap + totalDebt - totalCash;
+      const revenue       = r.revenue_per_share * sharesOut;
+      const ebitda        = revenue * (r.ebitda_margin || 0);
+      const liveEvEbitda  = ebitda > 0 ? liveEV / ebitda : null;
+      const liveEvRev     = revenue > 0 ? liveEV / revenue : null;
 
-      // Live price-dependent ratios
-      const livepe   = r.eps > 0 ? livePrice / r.eps : null;
-      const livepb   = r.book_value_per_share > 0 ? livePrice / r.book_value_per_share : null;
-      const liveps   = r.revenue_per_share > 0 ? livePrice / r.revenue_per_share : null;
-      const livepfcf = r.fcf_per_share > 0 ? livePrice / r.fcf_per_share : null;
-      const livefcfy = r.fcf_per_share > 0 ? r.fcf_per_share / livePrice : null;
-      const liveey   = r.eps > 0 ? r.eps / livePrice : null;
-
-      // Live EV calculation
-      const totalEquity = r.book_value_per_share * sharesOut;
-      const totalDebt   = r.debt_to_equity != null ? r.debt_to_equity * totalEquity : 0;
-      const totalCash   = r.cash_per_share * sharesOut;
-      const liveEV      = liveMktCap + totalDebt - totalCash;
-
-      // Live EV multiples
-      const revenue      = r.revenue_per_share * sharesOut;
-      const ebitda       = revenue * (r.ebitda_margin || 0);
-      const liveEvEbitda = ebitda > 0 ? liveEV / ebitda : null;
-      const liveEvRev    = revenue > 0 ? liveEV / revenue : null;
-
-      // Attach live ratios to the company object
       c.live = {
-        price:      livePrice,
-        market_cap: liveMktCap,
-        pe:         livepe,
-        pb:         livepb,
-        ps:         liveps,
-        pfcf:       livepfcf,
-        fcf_yield:  livefcfy,
+        price:          livePrice,
+        change:         pd?.change || null,
+        change_pct:     pd?.change_pct || null,
+        market_state:   pd?.market_state || null,
+        market_cap:     liveMktCap,
+        pe:             livepe,
+        pb:             livepb,
+        ps:             liveps,
+        pfcf:           livepfcf,
+        fcf_yield:      livefcfy,
         earnings_yield: liveey,
-        ev_ebitda:  liveEvEbitda,
-        ev_revenue: liveEvRev,
+        ev_ebitda:      liveEvEbitda,
+        ev_revenue:     liveEvRev,
       };
     });
     setStatus(`fetching prices... ${Math.min(i + BATCH, results.length)}/${results.length}`, '');
@@ -569,6 +590,7 @@ function renderTable(data) {
   const colMap = {
     name:      c => c.name || '',
     sector:    c => c.sector || '',
+    price:     c => c.live?.price || c.price || 0,
     mc:        c => c.live?.market_cap || c.market_cap || 0,
     pe:        c => { const v = c.live?.pe ?? c.ratios?.pe_ratio; return (v > 0 && v < 500) ? v : 9999; },
     pb:        c => { const v = c.live?.pb ?? c.ratios?.pb_ratio; return v > 0 ? v : 9999; },
@@ -596,6 +618,7 @@ function renderTable(data) {
   const headers = [
     {key:'name',   label:'Company'},
     {key:'sector', label:'Sector'},
+    {key:'price',  label:'Price',        r:true, live:true},
     {key:'mc',     label:'Mkt cap',      r:true, live:true},
     {key:'pe',     label:'P/E',          r:true, live:true},
     {key:'pb',     label:'P/B',          r:true, live:true},
@@ -616,6 +639,14 @@ function renderTable(data) {
   const tbody = sorted.map(c => {
     const r = c.ratios;
     const lp = c.live;
+
+    // Price + change
+    const priceVal = lp?.price || c.price;
+    const priceFmt = priceVal ? '$' + priceVal.toFixed(2) : '—';
+    const chgPct = lp?.change_pct;
+    const chgCls = chgPct == null ? '' : chgPct > 0 ? 'chg-up' : chgPct < 0 ? 'chg-dn' : 'chg-flat';
+    const chgFmt = chgPct != null ? (chgPct > 0 ? '▲' : chgPct < 0 ? '▼' : '') + Math.abs(chgPct).toFixed(2) + '%' : '';
+    const priceCell = `<div class="price-cell"><span class="num">${priceFmt}</span>${chgFmt ? `<span class="${chgCls}">${chgFmt}</span>` : ''}</div>`;
     const mc   = fmtVal(lp?.market_cap || c.market_cap, 'mc');
     const peV  = lp?.pe ?? r?.pe_ratio;
     const pbV  = lp?.pb ?? r?.pb_ratio;
@@ -633,6 +664,7 @@ function renderTable(data) {
     return `<tr>
       <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
       <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
+      <td class="r">${priceCell}</td>
       <td class="r"><span class="num">${mc}</span></td>
       <td class="r"><span class="num">${pe}</span></td>
       <td class="r"><span class="num">${pb}</span></td>
@@ -760,7 +792,18 @@ function applyRatioFilters(companies) {
     return true;
   });
 }
+async function refreshPrices() {
+  if (!lastResults.length || lastResults.length > 200) return;
+  if (!isMarketOpen()) return;
+  await enrichWithLivePrices(lastResults);
+  renderTable(lastResults);
+  updateStats(lastResults);
+  setStatus(`connected · ${lastResults.length} results · live prices`, 'live');
+}
 
-</script>
+// Auto-refresh prices every 5 minutes during market hours
+setInterval(refreshPrices, 5 * 60 * 1000);
+
+
 </body>
 </html>
