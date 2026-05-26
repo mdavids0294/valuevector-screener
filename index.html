@@ -46,7 +46,8 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .market-status{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);padding:5px 10px;border:0.5px solid var(--border);border-radius:5px}
 .dot.market-live{background:#4ade80;box-shadow:0 0 6px #4ade80}
 .dot.market-closed{background:var(--text3)}
-.btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none;-webkit-user-select:none}
+.btn *{pointer-events:none}
 .btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-primary{background:var(--accent);color:#0d1a08;border-color:transparent;font-weight:500}
