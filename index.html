@@ -196,6 +196,7 @@ a{color:var(--accent);text-decoration:none}
         <div class="preset-save-row">
           <input class="preset-input" id="preset-name" type="text" maxlength="40" placeholder="Preset name…" onkeydown="if(event.key==='Enter')savePreset()">
           <button class="preset-save-btn" id="preset-save-btn" onclick="savePreset()">Save</button>
+          <button class="preset-save-btn" onclick="resetFilters()" title="Reset all filters to defaults">Reset</button>
         </div>
       </div>
     </div>
@@ -959,6 +960,20 @@ async function deletePreset(id) {
     if (!res.ok) throw new Error();
     await loadPresets();
   } catch(e) { alert('Error deleting preset'); }
+}
+
+function resetFilters() {
+  const defaults = {
+    'mc-min': 0, 'mc-max': 29, 'vol': 0,
+    'pe': 30, 'pb': 30, 'ps': 30, 'pfcf': 30, 'fcfy': 0, 'ev': 30,
+    'gm': -100, 'nm': -100, 'em': -100, 'roe': -100, 'roa': -50,
+    'de': 100, 'cr': 0, 'dy': 0
+  };
+  Object.entries(defaults).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; syncSlider(el); }
+  });
+  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.add('active'));
 }
 
 loadPresets();
