@@ -390,6 +390,7 @@ let sortCol = 'score', sortDir = -1, lastResults = [], offset = 0, allData = [];
 
 async function supabaseQuery(params) {
   const url = `${SUPABASE_URL}/rest/v1/rpc/screen_companies`;
+  console.log('Query params:', params);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,market_cap,avg_volume,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share)&${params}`, {
     headers: {
       'apikey': SUPABASE_KEY,
