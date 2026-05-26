@@ -21,21 +21,25 @@ export async function onRequest(context) {
     if (!res.ok) throw new Error(`Yahoo returned ${res.status}`);
 
     const data = await res.json();
-    const quote = data?.chart?.result?.[0]?.meta;
+    const meta = data?.chart?.result?.[0]?.meta;
 
     return new Response(JSON.stringify({
       symbol,
-      price: quote?.regularMarketPrice || null,
-      market_cap: quote?.regularMarketCap || null,
+      price:             meta?.regularMarketPrice || null,
+      change:            meta?.regularMarketChange || null,
+      change_pct:        meta?.regularMarketChangePercent || null,
+      previous_close:    meta?.previousClose || null,
+      market_state:      meta?.marketState || null,
     }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-store'
       }
     });
 
-  } catch(e) {
+  } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
