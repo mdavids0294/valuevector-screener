@@ -588,8 +588,9 @@ async function runScreen() {
   try {
     const params = buildQuery();
     const data = await supabaseQuery(params);
-    if (!Array.isArray(data)) throw new Error('Unexpected response from Supabase');
-
+    console.log('Supabase response:', JSON.stringify(data).substring(0, 500));
+if (!Array.isArray(data)) throw new Error('Unexpected response: ' + JSON.stringify(data).substring(0, 200));
+    
     setStatus('filtering...', '');
     const filtered = applyRatioFilters(data);
     const scored = filtered.map(c => ({ ...c, score: calcScore(c) }));
