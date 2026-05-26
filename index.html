@@ -473,7 +473,7 @@ function setStatus(text, state) {
   dot.className = 'dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : '');
 }
 
-let sortCol = 'score', sortDir = -1, lastResults = [];
+let sortCol = 'pe', sortDir = 1, lastResults = [];
 
 async function supabaseQuery(params) {
   const SELECT = `symbol,name,sector,market_cap,volume,price,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
@@ -804,6 +804,6 @@ async function refreshPrices() {
 // Auto-refresh prices every 5 minutes during market hours
 setInterval(refreshPrices, 5 * 60 * 1000);
 
-
+</script>
 </body>
 </html>
