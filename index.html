@@ -193,19 +193,19 @@ a{color:var(--accent);text-decoration:none}
       <div class="section-body">
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max P/E</span><span class="slider-val" id="v-pe">No limit</span></div>
-          <input type="range" min="0" max="1000" step="5" value="1000" id="pe" oninput="syncSlider(this)">
+          <input type="range" min="0" max="30" step="1" value="30" id="pe" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max P/B</span><span class="slider-val" id="v-pb">No limit</span></div>
-          <input type="range" min="0" max="100" step="0.5" value="100" id="pb" oninput="syncSlider(this)">
+          <input type="range" min="0" max="30" step="1" value="30" id="pb" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max P/S</span><span class="slider-val" id="v-ps">No limit</span></div>
-          <input type="range" min="0" max="100" step="0.5" value="100" id="ps" oninput="syncSlider(this)">
+          <input type="range" min="0" max="30" step="1" value="30" id="ps" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max P/FCF</span><span class="slider-val" id="v-pfcf">No limit</span></div>
-          <input type="range" min="0" max="500" step="5" value="500" id="pfcf" oninput="syncSlider(this)">
+          <input type="range" min="0" max="30" step="1" value="30" id="pfcf" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Min FCF yield</span><span class="slider-val" id="v-fcfy">≥ 0%</span></div>
@@ -213,7 +213,7 @@ a{color:var(--accent);text-decoration:none}
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max EV/EBITDA</span><span class="slider-val" id="v-ev">No limit</span></div>
-          <input type="range" min="0" max="500" step="5" value="500" id="ev" oninput="syncSlider(this)">
+          <input type="range" min="0" max="30" step="1" value="30" id="ev" oninput="syncSlider(this)">
         </div>
       </div>
     </div>
@@ -378,6 +378,27 @@ function mcLabel(idx) {
   return '$' + Math.round(val/1e6) + 'M';
 }
 
+// Valuation multiple scale — tiered steps
+const VAL_SCALE = [
+  0, 2, 4, 6, 8, 10,        // 0-10: steps of 2
+  12, 14, 16, 18, 20,        // 10-20: steps of 2
+  25, 30, 35, 40, 45, 50,    // 20-50: steps of 5
+  60, 70, 80, 90, 100,       // 50-100: steps of 10
+  150, 200, 250, 300, 400, 500, // 100-500: steps of 50+
+  null                        // 30 = No limit
+];
+
+function valLabel(idx) {
+  const val = VAL_SCALE[idx];
+  if (val === null) return 'No limit';
+  if (val === 0) return 'No limit';
+  return `≤ ${val}×`;
+}
+
+function valRaw(idx) {
+  return VAL_SCALE[idx];
+}
+
 function volLabel(idx) {
   const val = VOL_SCALE[idx];
   if (val === 0) return 'No min';
@@ -402,19 +423,14 @@ function syncSlider(el) {
   if (id === 'mc-min') label = mcLabel(val);
   else if (id === 'mc-max') label = mcLabel(val);
   else if (id === 'vol') label = volLabel(val);
+  else if (['pe','pb','ps','pfcf','ev'].includes(id)) label = valLabel(val);
   else {
     const noLimit = {
-      'pe': val >= 1000, 'pb': val >= 100, 'ps': val >= 100,
-      'pfcf': val >= 500, 'ev': val >= 500, 'de': val >= 100
+      'de': val >= 100
     };
     const isNoLimit = noLimit[id];
     const fmtMap = {
-      'pe':   isNoLimit ? 'No limit' : `≤ ${val}×`,
-      'pb':   isNoLimit ? 'No limit' : `≤ ${val.toFixed(1)}×`,
-      'ps':   isNoLimit ? 'No limit' : `≤ ${val.toFixed(1)}×`,
-      'pfcf': isNoLimit ? 'No limit' : `≤ ${val}×`,
       'fcfy': `≥ ${val.toFixed(1)}%`,
-      'ev':   isNoLimit ? 'No limit' : `≤ ${val}×`,
       'gm':   `≥ ${val}%`,
       'nm':   `≥ ${val}%`,
       'em':   `≥ ${val}%`,
@@ -477,6 +493,7 @@ async function enrichWithLivePrices(companies) {
       if (!livePrice || !c.market_cap || !c.price || c.price <= 0) return;
       const r = Array.isArray(c.ratios) ? c.ratios[0] : c.ratios;
       if (!r) return;
+      if (c.symbol === 'MSFT') console.log('MSFT live debug:', { livePrice, sharesOut: c.market_cap/c.price, revPerShare: r.revenue_per_share, ebitdaMargin: r.ebitda_margin });
 
       // Calculate shares outstanding from stored market cap / stored price
       const sharesOut = c.market_cap / c.price;
@@ -703,9 +720,13 @@ function buildQuery() {
 }
 
 function applyRatioFilters(companies) {
-  const peMax = v('pe'), pbMax = v('pb'), psMax = v('ps');
-  const pfcfMax = v('pfcf'), fcfyMin = v('fcfy') / 100;
-  const evMax = v('ev'), gmMin = v('gm') / 100;
+  const peMax   = valRaw(v('pe'));
+  const pbMax   = valRaw(v('pb'));
+  const psMax   = valRaw(v('ps'));
+  const pfcfMax = valRaw(v('pfcf'));
+  const evMax   = valRaw(v('ev'));
+  const fcfyMin = v('fcfy') / 100;
+  const gmMin = v('gm') / 100;
   const nmMin = v('nm') / 100, emMin = v('em') / 100;
   const roeMin = v('roe') / 100, roaMin = v('roa') / 100;
   const deMax = v('de'), crMin = v('cr'), dyMin = v('dy') / 100;
@@ -713,12 +734,12 @@ function applyRatioFilters(companies) {
   return companies.filter(c => {
     const r = c.ratios;
     if (!r) return false;
-    if (peMax < 1000 && r.pe_ratio !== null && r.pe_ratio > 0 && r.pe_ratio > peMax) return false;
-    if (pbMax < 100 && r.pb_ratio !== null && r.pb_ratio > 0 && r.pb_ratio > pbMax) return false;
-    if (psMax < 100 && r.ps_ratio !== null && r.ps_ratio > 0 && r.ps_ratio > psMax) return false;
-    if (pfcfMax < 500 && r.pfcf_ratio !== null && r.pfcf_ratio > 0 && r.pfcf_ratio > pfcfMax) return false;
+    if (peMax !== null && r.pe_ratio !== null && r.pe_ratio > 0 && r.pe_ratio > peMax) return false;
+    if (pbMax !== null && r.pb_ratio !== null && r.pb_ratio > 0 && r.pb_ratio > pbMax) return false;
+    if (psMax !== null && r.ps_ratio !== null && r.ps_ratio > 0 && r.ps_ratio > psMax) return false;
+    if (pfcfMax !== null && r.pfcf_ratio !== null && r.pfcf_ratio > 0 && r.pfcf_ratio > pfcfMax) return false;
     if (fcfyMin > 0 && (r.fcf_yield === null || r.fcf_yield < fcfyMin)) return false;
-    if (evMax < 500 && r.ev_ebitda !== null && r.ev_ebitda > 0 && r.ev_ebitda > evMax) return false;
+    if (evMax !== null && r.ev_ebitda !== null && r.ev_ebitda > 0 && r.ev_ebitda > evMax) return false;
     if (gmMin > -1 && (r.gross_margin === null || r.gross_margin < gmMin)) return false;
     if (nmMin > -1 && (r.net_margin === null || r.net_margin < nmMin)) return false;
     if (emMin > -1 && (r.ebitda_margin === null || r.ebitda_margin < emMin)) return false;
