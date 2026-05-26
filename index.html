@@ -488,6 +488,8 @@ async function supabaseQuery(params) {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Accept': 'application/json'
+      'Range-Unit': 'items',
+      'Range': '0-1999'
     }
   });
   if (!res.ok) throw new Error(`Supabase error ${res.status}`);
