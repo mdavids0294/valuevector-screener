@@ -500,10 +500,6 @@ async function supabaseQuery(params) {
 
   return [...data1, ...data2];
 }
-  });
-  if (!res.ok) throw new Error(`Supabase error ${res.status}`);
-  return res.json();
-}
 
 async function fetchPrice(symbol) {
   try {
