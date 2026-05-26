@@ -20,7 +20,6 @@
   --accent2: #9ed870;
   --amber: #f0c040;
   --red: #f06060;
-  --teal: #60d0c0;
   --mono: 'DM Mono', monospace;
   --serif: 'Playfair Display', serif;
   --sans: 'DM Sans', sans-serif;
@@ -52,7 +51,6 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .sidebar{min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;border-right:0.5px solid var(--border);padding:16px 14px;display:flex;flex-direction:column;gap:5px}
 .sidebar::-webkit-scrollbar{width:3px}
 .sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-
 .section{background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
 .section-header{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
 .section-header:hover{background:var(--bg3)}
@@ -116,10 +114,6 @@ td.r{text-align:right}
 .co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .co-ticker{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:1px}
 .num{font-family:var(--mono);font-size:11px}
-.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500}
-.bg{background:rgba(200,245,154,0.1);color:var(--accent)}
-.ba{background:rgba(240,192,64,0.1);color:var(--amber)}
-.br{background:rgba(240,96,96,0.1);color:var(--red)}
 .score-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
 .score-num{font-family:var(--mono);font-size:11px;font-weight:500;min-width:26px;text-align:right}
 .score-track{width:44px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
@@ -135,10 +129,6 @@ td.r{text-align:right}
 /* FOOTER */
 .footer{flex-shrink:0;padding:8px 18px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .footer-text{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.06em}
-
-/* LOAD MORE */
-.load-more-wrap{text-align:center;padding:14px;border-top:0.5px solid var(--border)}
-
 a{color:var(--accent);text-decoration:none}
 </style>
 </head>
@@ -169,16 +159,16 @@ a{color:var(--accent);text-decoration:none}
       </div>
       <div class="section-body">
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Market cap min</span><span class="slider-val" id="v-mc-min">$100M</span></div>
-          <input type="range" min="50" max="2000" step="50" value="100" id="mc-min" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Market cap min</span><span class="slider-val" id="v-mc-min">No min</span></div>
+          <input type="range" min="0" max="29" step="1" value="0" id="mc-min" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Market cap max</span><span class="slider-val" id="v-mc-max">$10B</span></div>
-          <input type="range" min="1" max="50" step="1" value="10" id="mc-max" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Market cap max</span><span class="slider-val" id="v-mc-max">No limit</span></div>
+          <input type="range" min="0" max="29" step="1" value="29" id="mc-max" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min avg daily vol</span><span class="slider-val" id="v-vol">$500K</span></div>
-          <input type="range" min="100" max="10000" step="100" value="500" id="vol" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min avg daily vol</span><span class="slider-val" id="v-vol">No min</span></div>
+          <input type="range" min="0" max="28" step="1" value="0" id="vol" oninput="syncSlider(this)">
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
           <span style="font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">Sectors</span>
@@ -208,28 +198,28 @@ a{color:var(--accent);text-decoration:none}
       </div>
       <div class="section-body">
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max P/E</span><span class="slider-val" id="v-pe">≤ 30×</span></div>
-          <input type="range" min="5" max="100" step="1" value="30" id="pe" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/E</span><span class="slider-val" id="v-pe">No limit</span></div>
+          <input type="range" min="0" max="1000" step="5" value="1000" id="pe" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max P/B</span><span class="slider-val" id="v-pb">≤ 5×</span></div>
-          <input type="range" min="0.5" max="20" step="0.5" value="5" id="pb" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/B</span><span class="slider-val" id="v-pb">No limit</span></div>
+          <input type="range" min="0" max="100" step="0.5" value="100" id="pb" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max P/S</span><span class="slider-val" id="v-ps">≤ 5×</span></div>
-          <input type="range" min="0.5" max="20" step="0.5" value="5" id="ps" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/S</span><span class="slider-val" id="v-ps">No limit</span></div>
+          <input type="range" min="0" max="100" step="0.5" value="100" id="ps" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max P/FCF</span><span class="slider-val" id="v-pfcf">≤ 30×</span></div>
-          <input type="range" min="5" max="100" step="1" value="30" id="pfcf" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max P/FCF</span><span class="slider-val" id="v-pfcf">No limit</span></div>
+          <input type="range" min="0" max="500" step="5" value="500" id="pfcf" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Min FCF yield</span><span class="slider-val" id="v-fcfy">≥ 0%</span></div>
           <input type="range" min="0" max="20" step="0.5" value="0" id="fcfy" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max EV/EBITDA</span><span class="slider-val" id="v-ev">≤ 20×</span></div>
-          <input type="range" min="3" max="50" step="1" value="20" id="ev" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max EV/EBITDA</span><span class="slider-val" id="v-ev">No limit</span></div>
+          <input type="range" min="0" max="500" step="5" value="500" id="ev" oninput="syncSlider(this)">
         </div>
       </div>
     </div>
@@ -242,24 +232,24 @@ a{color:var(--accent);text-decoration:none}
       </div>
       <div class="section-body">
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min gross margin</span><span class="slider-val" id="v-gm">≥ 0%</span></div>
-          <input type="range" min="0" max="90" step="5" value="0" id="gm" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min gross margin</span><span class="slider-val" id="v-gm">≥ -100%</span></div>
+          <input type="range" min="-100" max="100" step="5" value="-100" id="gm" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min net margin</span><span class="slider-val" id="v-nm">≥ 0%</span></div>
-          <input type="range" min="-50" max="50" step="1" value="0" id="nm" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min net margin</span><span class="slider-val" id="v-nm">≥ -100%</span></div>
+          <input type="range" min="-100" max="100" step="1" value="-100" id="nm" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min EBITDA margin</span><span class="slider-val" id="v-em">≥ 0%</span></div>
-          <input type="range" min="-50" max="60" step="1" value="0" id="em" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min EBITDA margin</span><span class="slider-val" id="v-em">≥ -100%</span></div>
+          <input type="range" min="-100" max="100" step="1" value="-100" id="em" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min ROE</span><span class="slider-val" id="v-roe">≥ 0%</span></div>
-          <input type="range" min="-50" max="50" step="1" value="0" id="roe" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min ROE</span><span class="slider-val" id="v-roe">≥ -100%</span></div>
+          <input type="range" min="-100" max="200" step="1" value="-100" id="roe" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min ROA</span><span class="slider-val" id="v-roa">≥ 0%</span></div>
-          <input type="range" min="-30" max="30" step="1" value="0" id="roa" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min ROA</span><span class="slider-val" id="v-roa">≥ -50%</span></div>
+          <input type="range" min="-50" max="50" step="1" value="-50" id="roa" oninput="syncSlider(this)">
         </div>
       </div>
     </div>
@@ -272,16 +262,16 @@ a{color:var(--accent);text-decoration:none}
       </div>
       <div class="section-body">
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Max debt/equity</span><span class="slider-val" id="v-de">≤ 2×</span></div>
-          <input type="range" min="0" max="10" step="0.1" value="2" id="de" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Max debt/equity</span><span class="slider-val" id="v-de">No limit</span></div>
+          <input type="range" min="0" max="100" step="0.5" value="100" id="de" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
-          <div class="slider-meta"><span class="slider-label">Min current ratio</span><span class="slider-val" id="v-cr">≥ 1×</span></div>
-          <input type="range" min="0.5" max="5" step="0.1" value="1" id="cr" oninput="syncSlider(this)">
+          <div class="slider-meta"><span class="slider-label">Min current ratio</span><span class="slider-val" id="v-cr">≥ 0×</span></div>
+          <input type="range" min="0" max="20" step="0.1" value="0" id="cr" oninput="syncSlider(this)">
         </div>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Min dividend yield</span><span class="slider-val" id="v-dy">≥ 0%</span></div>
-          <input type="range" min="0" max="10" step="0.5" value="0" id="dy" oninput="syncSlider(this)">
+          <input type="range" min="0" max="20" step="0.5" value="0" id="dy" oninput="syncSlider(this)">
         </div>
       </div>
     </div>
@@ -313,7 +303,7 @@ a{color:var(--accent);text-decoration:none}
       <div class="state">
         <div style="font-family:var(--serif);font-size:28px;font-style:italic;color:var(--text3);margin-bottom:4px">Find the hidden.</div>
         <p>Adjust your filters and hit Run screen</p>
-        <small>Powered by Supabase · ~7,000 US companies</small>
+        <small>Powered by Supabase · ~5,000 US companies</small>
       </div>
     </div>
 
@@ -326,17 +316,100 @@ a{color:var(--accent);text-decoration:none}
 
 <script>
 const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmhidWtsYXRwZ3lvbmRla2djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjA1NzIsImV4cCI6MjA5NTA5NjU3Mn0.l2MBcyShvjKK20y4Qsq2hJN1QPUX0NZxXk9ne1J2um8';
+const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
 const PRICE_PROXY = '/api/price';
-const PAGE_SIZE = 50;
+
+// Logarithmic market cap scale — each step is a meaningful jump
+const MC_SCALE = [
+  0,           // 0 = No min
+  10e6,        // $10M
+  25e6,        // $25M
+  50e6,        // $50M
+  75e6,        // $75M
+  100e6,       // $100M
+  150e6,       // $150M
+  200e6,       // $200M
+  300e6,       // $300M
+  500e6,       // $500M
+  750e6,       // $750M
+  1e9,         // $1B
+  1.5e9,       // $1.5B
+  2e9,         // $2B
+  3e9,         // $3B
+  5e9,         // $5B
+  7.5e9,       // $7.5B
+  10e9,        // $10B
+  15e9,        // $15B
+  20e9,        // $20B
+  30e9,        // $30B
+  50e9,        // $50B
+  75e9,        // $75B
+  100e9,       // $100B
+  150e9,       // $150B
+  250e9,       // $250B
+  500e9,       // $500B
+  1e12,        // $1T
+  2e12,        // $2T
+  null         // 29 = No limit
+];
+
+// Volume scale
+const VOL_SCALE = [
+  0,           // No min
+  10e3,        // $10K
+  25e3,        // $25K
+  50e3,        // $50K
+  100e3,       // $100K
+  250e3,       // $250K
+  500e3,       // $500K
+  1e6,         // $1M
+  2.5e6,       // $2.5M
+  5e6,         // $5M
+  10e6,        // $10M
+  25e6,        // $25M
+  50e6,        // $50M
+  100e6,       // $100M
+  250e6,       // $250M
+  500e6,       // $500M
+  1e9,         // $1B
+  2e9,         // $2B
+  5e9,         // $5B
+  10e9,        // $10B
+  25e9,        // $25B
+  50e9,        // $50B
+  100e9,       // $100B
+  150e9,       // $150B
+  200e9,       // $200B
+  204e9,       // ~max
+  204e9,
+  204e9,
+  204e9        // 28 = max
+];
+
+function mcLabel(idx) {
+  const val = MC_SCALE[idx];
+  if (val === null) return 'No limit';
+  if (val === 0) return 'No min';
+  if (val >= 1e12) return '$' + (val/1e12).toFixed(1) + 'T';
+  if (val >= 1e9) return '$' + (val >= 10e9 ? Math.round(val/1e9) : (val/1e9).toFixed(1)) + 'B';
+  return '$' + Math.round(val/1e6) + 'M';
+}
+
+function volLabel(idx) {
+  const val = VOL_SCALE[idx];
+  if (val === 0) return 'No min';
+  if (val >= 1e9) return '$' + (val/1e9).toFixed(0) + 'B';
+  if (val >= 1e6) return '$' + (val/1e6).toFixed(0) + 'M';
+  return '$' + Math.round(val/1e3) + 'K';
+}
 
 const WEIGHTS_CONFIG = [
-  { id: 'w-pe',   label: 'Low P/E',       default: 3 },
-  { id: 'w-fcfy', label: 'FCF yield',      default: 4 },
-  { id: 'w-ev',   label: 'EV/EBITDA',      default: 2 },
-  { id: 'w-gm',   label: 'Gross margin',   default: 2 },
-  { id: 'w-roe',  label: 'ROE',            default: 2 },
-  { id: 'w-de',   label: 'Low debt',       default: 2 },
+  { id: 'w-pe',   label: 'Low P/E',     default: 3 },
+  { id: 'w-fcfy', label: 'FCF yield',   default: 4 },
+  { id: 'w-ev',   label: 'EV/EBITDA',   default: 2 },
+  { id: 'w-gm',   label: 'Gross margin',default: 2 },
+  { id: 'w-roe',  label: 'ROE',         default: 2 },
+  { id: 'w-de',   label: 'Low debt',    default: 2 },
 ];
 const weights = {};
 WEIGHTS_CONFIG.forEach(w => weights[w.id] = w.default);
@@ -365,18 +438,39 @@ function setSectors(on) {
 }
 
 function v(id) { return parseFloat(document.getElementById(id).value); }
+
 function syncSlider(el) {
   const id = el.id, val = parseFloat(el.value);
-  const map = {
-    'mc-min': `$${val}M`, 'mc-max': `$${val}B`, 'vol': `$${val}K`,
-    'pe': `≤ ${val}×`, 'pb': `≤ ${val}×`, 'ps': `≤ ${val}×`,
-    'pfcf': `≤ ${val}×`, 'fcfy': `≥ ${val.toFixed(1)}%`, 'ev': `≤ ${val}×`,
-    'gm': `≥ ${val}%`, 'nm': `≥ ${val}%`, 'em': `≥ ${val}%`,
-    'roe': `≥ ${val}%`, 'roa': `≥ ${val}%`,
-    'de': `≤ ${val.toFixed(1)}×`, 'cr': `≥ ${val.toFixed(1)}×`, 'dy': `≥ ${val.toFixed(1)}%`
-  };
+  let label = '';
+  if (id === 'mc-min') label = mcLabel(val);
+  else if (id === 'mc-max') label = mcLabel(val);
+  else if (id === 'vol') label = volLabel(val);
+  else {
+    const noLimit = {
+      'pe': val >= 1000, 'pb': val >= 100, 'ps': val >= 100,
+      'pfcf': val >= 500, 'ev': val >= 500, 'de': val >= 100
+    };
+    const isNoLimit = noLimit[id];
+    const fmtMap = {
+      'pe':   isNoLimit ? 'No limit' : `≤ ${val}×`,
+      'pb':   isNoLimit ? 'No limit' : `≤ ${val.toFixed(1)}×`,
+      'ps':   isNoLimit ? 'No limit' : `≤ ${val.toFixed(1)}×`,
+      'pfcf': isNoLimit ? 'No limit' : `≤ ${val}×`,
+      'fcfy': `≥ ${val.toFixed(1)}%`,
+      'ev':   isNoLimit ? 'No limit' : `≤ ${val}×`,
+      'gm':   `≥ ${val}%`,
+      'nm':   `≥ ${val}%`,
+      'em':   `≥ ${val}%`,
+      'roe':  `≥ ${val}%`,
+      'roa':  `≥ ${val}%`,
+      'de':   isNoLimit ? 'No limit' : `≤ ${val.toFixed(1)}×`,
+      'cr':   `≥ ${val.toFixed(1)}×`,
+      'dy':   `≥ ${val.toFixed(1)}%`,
+    };
+    label = fmtMap[id] || '';
+  }
   const el2 = document.getElementById('v-' + id);
-  if (el2 && map[id]) el2.textContent = map[id];
+  if (el2 && label) el2.textContent = label;
 }
 document.querySelectorAll('input[type=range]').forEach(el => syncSlider(el));
 
@@ -386,11 +480,9 @@ function setStatus(text, state) {
   dot.className = 'dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : '');
 }
 
-let sortCol = 'score', sortDir = -1, lastResults = [], offset = 0, allData = [];
+let sortCol = 'score', sortDir = -1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const url = `${SUPABASE_URL}/rest/v1/rpc/screen_companies`;
-  console.log('Query params:', params);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,market_cap,volume,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share)&${params}`, {
     headers: {
       'apikey': SUPABASE_KEY,
@@ -399,9 +491,7 @@ async function supabaseQuery(params) {
     }
   });
   if (!res.ok) throw new Error(`Supabase error ${res.status}`);
-  const text = await res.text();
-console.log('Raw response:', text.substring(0, 1000));
-return JSON.parse(text);
+  return res.json();
 }
 
 async function fetchPrice(symbol) {
@@ -415,17 +505,21 @@ async function fetchPrice(symbol) {
 
 function buildQuery() {
   const activeSectors = Array.from(document.querySelectorAll('.tog.active[data-sector]')).map(el => el.dataset.sector);
-  const mcMin = v('mc-min') * 1e6;
-  const mcMax = v('mc-max') * 1e9;
-  const volMin = v('vol') * 1e3;
+  const mcMinIdx = v('mc-min');
+  const mcMaxIdx = v('mc-max');
+  const volIdx = v('vol');
+  const mcMin = MC_SCALE[mcMinIdx] || 0;
+  const mcMax = MC_SCALE[mcMaxIdx];
+  const volMin = VOL_SCALE[volIdx] || 0;
 
-  let params = `market_cap=gte.${Math.round(mcMin)}&market_cap=lte.${Math.round(mcMax)}`;
-  if (volMin > 0) params += `&volume=gte.${Math.round(volMin)}`;
+  let params = '';
+  if (mcMin > 0) params += `market_cap=gte.${Math.round(mcMin)}&`;
+  if (mcMax !== null) params += `market_cap=lte.${Math.round(mcMax)}&`;
+  if (volMin > 0) params += `volume=gte.${Math.round(volMin)}&`;
   if (activeSectors.length < 11 && activeSectors.length > 0) {
-    params += `&sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})`;
+    params += `sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})&`;
   }
-  params += `&is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true`;
-  params += `&limit=1000`;
+  params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true&limit=1000`;
   return params;
 }
 
@@ -440,19 +534,19 @@ function applyRatioFilters(companies) {
   return companies.filter(c => {
     const r = c.ratios;
     if (!r) return false;
-    if (r.pe_ratio !== null && r.pe_ratio > 0 && r.pe_ratio > peMax) return false;
-    if (r.pb_ratio !== null && r.pb_ratio > 0 && r.pb_ratio > pbMax) return false;
-    if (r.ps_ratio !== null && r.ps_ratio > 0 && r.ps_ratio > psMax) return false;
-    if (r.pfcf_ratio !== null && r.pfcf_ratio > 0 && r.pfcf_ratio > pfcfMax) return false;
+    if (peMax < 1000 && r.pe_ratio !== null && r.pe_ratio > 0 && r.pe_ratio > peMax) return false;
+    if (pbMax < 100 && r.pb_ratio !== null && r.pb_ratio > 0 && r.pb_ratio > pbMax) return false;
+    if (psMax < 100 && r.ps_ratio !== null && r.ps_ratio > 0 && r.ps_ratio > psMax) return false;
+    if (pfcfMax < 500 && r.pfcf_ratio !== null && r.pfcf_ratio > 0 && r.pfcf_ratio > pfcfMax) return false;
     if (fcfyMin > 0 && (r.fcf_yield === null || r.fcf_yield < fcfyMin)) return false;
-    if (r.ev_ebitda !== null && r.ev_ebitda > 0 && r.ev_ebitda > evMax) return false;
-    if (gmMin > 0 && (r.gross_margin === null || r.gross_margin < gmMin)) return false;
-    if (nmMin > 0 && (r.net_margin === null || r.net_margin < nmMin)) return false;
-    if (emMin > 0 && (r.ebitda_margin === null || r.ebitda_margin < emMin)) return false;
-    if (roeMin > 0 && (r.roe === null || r.roe < roeMin)) return false;
-    if (roaMin > 0 && (r.roa === null || r.roa < roaMin)) return false;
-    if (r.debt_to_equity !== null && r.debt_to_equity > deMax) return false;
-    if (r.current_ratio !== null && r.current_ratio < crMin) return false;
+    if (evMax < 500 && r.ev_ebitda !== null && r.ev_ebitda > 0 && r.ev_ebitda > evMax) return false;
+    if (gmMin > -1 && (r.gross_margin === null || r.gross_margin < gmMin)) return false;
+    if (nmMin > -1 && (r.net_margin === null || r.net_margin < nmMin)) return false;
+    if (emMin > -1 && (r.ebitda_margin === null || r.ebitda_margin < emMin)) return false;
+    if (roeMin > -1 && (r.roe === null || r.roe < roeMin)) return false;
+    if (roaMin > -0.5 && (r.roa === null || r.roa < roaMin)) return false;
+    if (deMax < 100 && r.debt_to_equity !== null && r.debt_to_equity > deMax) return false;
+    if (crMin > 0 && (r.current_ratio === null || r.current_ratio < crMin)) return false;
     if (dyMin > 0 && (r.dividend_yield === null || r.dividend_yield < dyMin)) return false;
     return true;
   });
@@ -477,13 +571,14 @@ function calcScore(c) {
   return w > 0 ? Math.round((s / w / 2) * 100) : 0;
 }
 
-function fmt(val, type) {
+function fmtVal(val, type) {
   if (val === null || val === undefined || isNaN(val)) return '—';
   if (type === 'x') return val.toFixed(1) + '×';
   if (type === '%') return (val * 100).toFixed(1) + '%';
   if (type === 'mc') {
-    const b = val / 1e9;
-    return b >= 1 ? '$' + b.toFixed(2) + 'B' : '$' + Math.round(val / 1e6) + 'M';
+    if (val >= 1e12) return '$' + (val/1e12).toFixed(2) + 'T';
+    if (val >= 1e9) return '$' + (val/1e9).toFixed(2) + 'B';
+    return '$' + Math.round(val/1e6) + 'M';
   }
   return val;
 }
@@ -492,19 +587,19 @@ function scoreColor(s) {
   return s >= 70 ? 'var(--accent)' : s >= 45 ? 'var(--amber)' : 'var(--red)';
 }
 
-function renderTable(data, append) {
+function renderTable(data) {
   const colMap = {
-    name: r => r.name || '',
+    name:   r => r.name || '',
     sector: r => r.sector || '',
-    mc: r => r.market_cap || 0,
-    pe: r => (r.ratios?.pe_ratio > 0 && r.ratios?.pe_ratio < 500) ? r.ratios.pe_ratio : 9999,
-    pb: r => r.ratios?.pb_ratio > 0 ? r.ratios.pb_ratio : 9999,
-    gm: r => r.ratios?.gross_margin || 0,
-    nm: r => r.ratios?.net_margin || 0,
-    fcfy: r => r.ratios?.fcf_yield || 0,
-    ev: r => r.ratios?.ev_ebitda > 0 ? r.ratios.ev_ebitda : 9999,
-    de: r => r.ratios?.debt_to_equity ?? 9999,
-    score: r => r.score || 0,
+    mc:     r => r.market_cap || 0,
+    pe:     r => (r.ratios?.pe_ratio > 0 && r.ratios?.pe_ratio < 500) ? r.ratios.pe_ratio : 9999,
+    pb:     r => r.ratios?.pb_ratio > 0 ? r.ratios.pb_ratio : 9999,
+    gm:     r => r.ratios?.gross_margin || 0,
+    nm:     r => r.ratios?.net_margin || 0,
+    fcfy:   r => r.ratios?.fcf_yield || 0,
+    ev:     r => r.ratios?.ev_ebitda > 0 ? r.ratios.ev_ebitda : 9999,
+    de:     r => r.ratios?.debt_to_equity ?? 9999,
+    score:  r => r.score || 0,
   };
 
   const sorted = [...data].sort((a, b) => {
@@ -512,18 +607,23 @@ function renderTable(data, append) {
     return typeof av === 'string' ? av.localeCompare(bv) * sortDir : (av - bv) * sortDir;
   });
 
-  if (sorted.length === 0 && !append) {
+  if (sorted.length === 0) {
     document.getElementById('table-wrap').innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">No results</div><p>Try relaxing your filters</p></div>';
     return;
   }
 
   const headers = [
-    {key:'name',label:'Company'},{key:'sector',label:'Sector'},
-    {key:'mc',label:'Mkt cap',r:true},{key:'pe',label:'P/E',r:true},
-    {key:'pb',label:'P/B',r:true},{key:'gm',label:'Gross margin',r:true},
-    {key:'nm',label:'Net margin',r:true},{key:'fcfy',label:'FCF yield',r:true},
-    {key:'ev',label:'EV/EBITDA',r:true},{key:'de',label:'D/E',r:true},
-    {key:'score',label:'Score',r:true},
+    {key:'name',  label:'Company'},
+    {key:'sector',label:'Sector'},
+    {key:'mc',    label:'Mkt cap',     r:true},
+    {key:'pe',    label:'P/E',         r:true},
+    {key:'pb',    label:'P/B',         r:true},
+    {key:'gm',    label:'Gross margin',r:true},
+    {key:'nm',    label:'Net margin',  r:true},
+    {key:'fcfy',  label:'FCF yield',   r:true},
+    {key:'ev',    label:'EV/EBITDA',   r:true},
+    {key:'de',    label:'D/E',         r:true},
+    {key:'score', label:'Score',       r:true},
   ];
 
   const thead = headers.map(h => {
@@ -534,17 +634,17 @@ function renderTable(data, append) {
   const tbody = sorted.map(c => {
     const r = c.ratios;
     const sc = c.score;
-    const pe = r?.pe_ratio > 0 && r?.pe_ratio < 500 ? r.pe_ratio.toFixed(1)+'×' : '—';
-    const pb = r?.pb_ratio > 0 ? r.pb_ratio.toFixed(2)+'×' : '—';
-    const gm = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
-    const nm = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
+    const pe   = r?.pe_ratio > 0 && r?.pe_ratio < 500 ? r.pe_ratio.toFixed(1)+'×' : '—';
+    const pb   = r?.pb_ratio > 0 ? r.pb_ratio.toFixed(2)+'×' : '—';
+    const gm   = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
+    const nm   = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
     const fcfy = r?.fcf_yield != null && r.fcf_yield > 0 ? (r.fcf_yield*100).toFixed(1)+'%' : '—';
-    const ev = r?.ev_ebitda > 0 ? r.ev_ebitda.toFixed(1)+'×' : '—';
-    const de = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
+    const ev   = r?.ev_ebitda > 0 ? r.ev_ebitda.toFixed(1)+'×' : '—';
+    const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
     return `<tr>
       <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
       <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
-      <td class="r"><span class="num">${fmt(c.market_cap,'mc')}</span></td>
+      <td class="r"><span class="num">${fmtVal(c.market_cap,'mc')}</span></td>
       <td class="r"><span class="num">${pe}</span></td>
       <td class="r"><span class="num">${pb}</span></td>
       <td class="r"><span class="num">${gm}</span></td>
@@ -555,11 +655,6 @@ function renderTable(data, append) {
       <td class="r"><div class="score-wrap"><span class="score-num" style="color:${scoreColor(sc)}">${sc}</span><div class="score-track"><div class="score-fill" style="width:${sc}%;background:${scoreColor(sc)}"></div></div></div></td>
     </tr>`;
   }).join('');
-
-  if (append) {
-    const existing = document.querySelector('#table-wrap table tbody');
-    if (existing) { existing.innerHTML += tbody; return; }
-  }
 
   document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
 }
@@ -591,9 +686,8 @@ async function runScreen() {
   try {
     const params = buildQuery();
     const data = await supabaseQuery(params);
-    console.log('Supabase response:', JSON.stringify(data).substring(0, 500));
-if (!Array.isArray(data)) throw new Error('Unexpected response: ' + JSON.stringify(data).substring(0, 200));
-    
+    if (!Array.isArray(data)) throw new Error('Unexpected response from Supabase');
+
     setStatus('filtering...', '');
     const filtered = applyRatioFilters(data);
     const scored = filtered.map(c => ({ ...c, score: calcScore(c) }));
