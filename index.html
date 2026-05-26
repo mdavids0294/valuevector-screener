@@ -549,7 +549,7 @@ function setStatus(text, state) {
 let sortCol = 'pe', sortDir = 1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const SELECT = `symbol,name,sector,market_cap,volume,price,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1204,6 +1204,7 @@ window.applyPreset = applyPreset;
 window.deletePreset = deletePreset;
 window.openModal = openModal;
 window.closeModal = closeModal;
+window.resetFilters = resetFilters;
 
 }); // end DOMContentLoaded
 </script>
