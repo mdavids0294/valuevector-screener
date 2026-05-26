@@ -519,7 +519,7 @@ function buildQuery() {
   if (activeSectors.length < 11 && activeSectors.length > 0) {
     params += `sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})&`;
   }
-  params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true&limit=1000`;
+  params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true&limit=2000`;
   return params;
 }
 
@@ -693,7 +693,8 @@ async function runScreen() {
     const scored = filtered.map(c => ({ ...c, score: calcScore(c) }));
     lastResults = scored;
 
-    setStatus(`connected · ${scored.length} results`, 'live');
+    const hitLimit = data.length >= 2000;
+setStatus(`connected · ${scored.length} results${hitLimit ? ' (filtered from 2000+ — narrow your filters)' : ''}`, 'live');
     renderTable(scored);
     updateStats(scored);
 
