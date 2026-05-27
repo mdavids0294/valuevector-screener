@@ -1148,11 +1148,26 @@ function clearSearch() {
   renderTable(lastResults);
 }
 
-function runSearchEnter(query, results) {
+async function runSearchEnter(query, results) {
   document.getElementById('search-dropdown').style.display = 'none';
-  lastResults = results;
-  renderTable(results);
-  setStatus(results.length + ' result' + (results.length !== 1 ? 's' : '') + ' for "' + query + '"', '');
+  setStatus('searching...', '');
+  try {
+    const symbols = results.map(c => c.symbol);
+    const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
+    const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
+    if (!r.ok) throw new Error();
+    const full = await r.json();
+    // Re-sort to match original search priority order
+    const sorted = symbols.map(sym => full.find(c => c.symbol === sym)).filter(Boolean);
+    lastResults = sorted;
+    renderTable(sorted);
+    updateStats(sorted);
+    setStatus(sorted.length + ' result' + (sorted.length !== 1 ? 's' : '') + ' for "' + query + '"', 'live');
+  } catch(e) {
+    setStatus('search error', 'err');
+  }
 }
 
 window.selectResult = selectResult;
