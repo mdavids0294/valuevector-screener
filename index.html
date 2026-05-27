@@ -445,7 +445,7 @@ a{color:var(--accent);text-decoration:none}
     <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;margin:10px 12px 0;position:relative;z-index:100" id="search-top-row">
       <div class="search-wrap" style="width:50%;flex-shrink:0">
         <span class="search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
-        <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company" autocomplete="off">
+        <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company name…" autocomplete="off">
         <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear" style="display:none">&#xd7;</button>
         <div class="search-dropdown" id="search-dropdown"></div>
       </div>
@@ -1139,12 +1139,24 @@ function renderDropdown(results) {
   dd.style.display = 'block';
 }
 
-function selectResult(symbol) {
-  const c = allCompanies.find(r => r.symbol === symbol);
-  if (!c) return;
+async function selectResult(symbol) {
   document.getElementById('search-dropdown').style.display = 'none';
-  document.getElementById('search-input').value = c.symbol;
-  if (!lastResults.find(r => r.symbol === symbol)) lastResults = [c, ...lastResults];
+  document.getElementById('search-input').value = symbol;
+  // Check if we already have full data (with ratios)
+  const existing = lastResults.find(r => r.symbol === symbol && r.ratios);
+  if (existing) { openModal(symbol); return; }
+  // Fetch full data
+  try {
+    const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
+    if (!r.ok) throw new Error();
+    const [full] = await r.json();
+    if (full) {
+      lastResults = lastResults.filter(r => r.symbol !== symbol);
+      lastResults = [full, ...lastResults];
+    }
+  } catch(e) {}
   openModal(symbol);
 }
 
@@ -1228,10 +1240,7 @@ function renderRecents() {
     const btn = document.createElement('button');
     btn.className = 'recent-btn';
     btn.textContent = sym;
-    btn.onclick = () => {
-      const c = allCompanies.find(r => r.symbol === sym) || lastResults.find(r => r.symbol === sym);
-      if (c) { if (!lastResults.find(r => r.symbol === sym)) lastResults = [c, ...lastResults]; openModal(sym); }
-    };
+    btn.onclick = () => selectResult(sym);
     row.appendChild(btn);
     if (row.scrollWidth > topRow.clientWidth) { btn.remove(); break; }
   }
