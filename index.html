@@ -1110,9 +1110,11 @@ function searchCompanies(query) {
   if (!query) return [];
   const q = query.trim().toUpperCase();
   const qLow = query.trim().toLowerCase();
-  const symMatches  = allCompanies.filter(c => c.symbol.startsWith(q));
-  const nameMatches = allCompanies.filter(c => !c.symbol.startsWith(q) && (c.name || '').toLowerCase().includes(qLow));
-  return [...symMatches, ...nameMatches];
+  const symExact   = allCompanies.filter(c => c.symbol === q);
+  const symPrefix  = allCompanies.filter(c => c.symbol !== q && c.symbol.startsWith(q));
+  const nameStarts = allCompanies.filter(c => !c.symbol.startsWith(q) && (c.name || '').toLowerCase().startsWith(qLow));
+  const nameContains = allCompanies.filter(c => !c.symbol.startsWith(q) && !(c.name || '').toLowerCase().startsWith(qLow) && (c.name || '').toLowerCase().includes(qLow));
+  return [...symExact, ...symPrefix, ...nameStarts, ...nameContains];
 }
 
 function renderDropdown(results) {
