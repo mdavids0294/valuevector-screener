@@ -1314,6 +1314,12 @@ function openModal(symbol) {
   // Fetch chart and trading data in parallel
   chartData = [];
   chartRange = '1Y';
+  // Reset MA toggles to off on each modal open
+  maVisible[20] = false; maVisible[50] = false; maVisible[200] = false;
+  ['20','50','200'].forEach(p => {
+    const btn = document.getElementById('ma-btn-' + p);
+    if (btn) btn.classList.remove('on');
+  });
   fetchChartData(c.symbol).then(data => {
     chartData = data;
     // Compute technical indicators on full 3Y dataset
