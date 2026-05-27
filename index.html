@@ -1482,7 +1482,7 @@ async function fetchInsiderTrades(symbol) {
   try {
     const from12m = new Date(); from12m.setFullYear(from12m.getFullYear() - 1);
     const fromStr = from12m.toISOString().slice(0,10);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/insider_trades?symbol=eq.${symbol}&transaction_date=gte.${fromStr}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/insider_trades?symbol=eq.${symbol}&transaction_date=gte.${fromStr}&transaction_type=in.(P-Purchase,S-Sale)&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
     if (!res.ok) throw new Error();
     const trades = await res.json();
     if (pillsEl) pillsEl.innerHTML = insiderSummary(trades);
