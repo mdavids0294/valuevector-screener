@@ -106,7 +106,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .preset-save-btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* STATES */
-.main{min-height:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.main{min-height:0;height:100%;display:flex;flex-direction:column;overflow:visible}
 
 /* STATS */
 .stats{flex-shrink:0;display:flex;border-bottom:0.5px solid var(--border)}
@@ -151,7 +151,7 @@ td.r{text-align:right}
 .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;display:flex;align-items:center}
 .search-clear{position:absolute;right:0;top:0;bottom:0;width:32px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;display:flex;align-items:center;justify-content:center;transition:color .12s;border-radius:0 6px 6px 0}
 .search-clear:hover{color:var(--text2)}
-.search-dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;overflow:hidden;z-index:50;display:none}
+.search-dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;overflow:hidden;z-index:1000;display:none}
 .search-result{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border)}
 .search-result:last-child{border-bottom:none}
 .search-result:hover{background:var(--bg3)}
@@ -442,10 +442,10 @@ a{color:var(--accent);text-decoration:none}
   </aside>
 
   <main class="main">
-    <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;margin:10px 12px 0;overflow:hidden" id="search-top-row">
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;margin:10px 12px 0;position:relative;z-index:100" id="search-top-row">
       <div class="search-wrap" style="width:50%;flex-shrink:0">
         <span class="search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
-        <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company" autocomplete="off">
+        <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company name…" autocomplete="off">
         <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear" style="display:none">&#xd7;</button>
         <div class="search-dropdown" id="search-dropdown"></div>
       </div>
