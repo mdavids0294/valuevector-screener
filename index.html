@@ -199,10 +199,15 @@ a{color:var(--accent);text-decoration:none}
 
 /* CHART */
 .chart-wrap{background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:9px 11px 8px;position:relative}
-.chart-ranges{display:flex;gap:1px;margin-bottom:6px}
+.chart-ranges{display:flex;gap:1px}
 .chart-range-btn{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 4px;border-radius:3px;border:0.5px solid transparent;background:transparent;color:var(--text3);cursor:pointer;transition:all .12s}
 .chart-range-btn:hover{color:var(--text2)}
 .chart-range-btn.active{background:var(--bg2);border-color:var(--border2);color:var(--accent)}
+.chart-ctrl-row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}
+.chart-ctrl-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.chart-ma-btns{display:flex;gap:2px}
+.chart-ma-btn{font-family:var(--mono);font-size:10px;padding:2px 4px;border-radius:3px;border:0.5px solid;background:transparent;cursor:pointer;opacity:0.3;transition:opacity .15s}
+.chart-ma-btn.on{opacity:1}
 .chart-svg{width:100%;height:195px;display:block;overflow:visible}
 .chart-loading{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;padding:40px 0}
 .chart-tooltip{position:absolute;background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:5px 8px;font-family:var(--mono);font-size:10px;color:var(--text);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:10}
@@ -446,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
 const PRICE_PROXY = '/api/price';
+const FMP_KEY = 'YOUR_FMP_KEY_HERE';
 
 // Logarithmic market cap scale — each step is a meaningful jump
 const MC_SCALE = [
@@ -1130,10 +1136,23 @@ const MODAL_SECTIONS = [
       { label: 'Payout ratio',   get: c => c.ratios?.dividend_payout_ratio, fmt: '%' },
     ]
   },
+  {
+    title: 'Technical',
+    full: true,
+    horizontal: true,
+    fields: [
+      { label: 'RSI 14D',   get: c => c._tech?.rsi,    fmt: 'raw', color: null },
+      { label: 'Sharpe',    get: c => c._tech?.sharpe,  fmt: 'raw', color: 'pos-good' },
+      { label: '20D MA',    get: c => c._tech?.ma20,    fmt: '$' },
+      { label: '50D MA',    get: c => c._tech?.ma50,    fmt: '$' },
+      { label: '200D MA',   get: c => c._tech?.ma200,   fmt: '$' },
+    ]
+  },
 ];
 
 function fmtModalVal(val, fmt) {
   if (val === null || val === undefined || isNaN(val)) return null;
+  if (fmt === 'raw') return String(val);
   if (fmt === 'x')  return val.toFixed(1) + '×';
   if (fmt === '%')  return (val * 100).toFixed(1) + '%';
   if (fmt === '$')  return '$' + val.toFixed(2);
@@ -1247,7 +1266,20 @@ function openModal(symbol) {
         ${metaPillsHtml}
         ${descriptionHtml}
         <div class="chart-wrap">
-          <div class="chart-ranges" id="chart-ranges">${rangesHtml}</div>
+          <div class="chart-ctrl-row">
+            <div>
+              <div class="chart-ctrl-label">Duration</div>
+              <div class="chart-ranges" id="chart-ranges">${rangesHtml}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="chart-ctrl-label">Moving averages</div>
+              <div class="chart-ma-btns">
+                <button class="chart-ma-btn on" id="ma-btn-20"  style="color:#f0c040;border-color:#f0c040" onclick="toggleMA(20)">20D</button>
+                <button class="chart-ma-btn on" id="ma-btn-50"  style="color:#7c8fff;border-color:#7c8fff" onclick="toggleMA(50)">50D</button>
+                <button class="chart-ma-btn on" id="ma-btn-200" style="color:#f06060;border-color:#f06060" onclick="toggleMA(200)">200D</button>
+              </div>
+            </div>
+          </div>
           <div id="chart-container"><div class="chart-loading">Loading chart…</div></div>
           <div class="chart-tooltip" id="chart-tooltip"></div>
         </div>
@@ -1284,6 +1316,11 @@ function openModal(symbol) {
   chartRange = '1Y';
   fetchChartData(c.symbol).then(data => {
     chartData = data;
+    // Compute technical indicators on full 3Y dataset
+    c._tech = computeTech(chartData);
+    // Re-render modal sections to show technical data
+    const techSection = document.querySelector('.modal-sections');
+    if (techSection) techSection.innerHTML = MODAL_SECTIONS.map(s => renderModalSection(s, c)).join('');
     renderChart(filterByRange(chartData, chartRange));
   });
   fetchInsiderTrades(c.symbol);
@@ -1291,6 +1328,90 @@ function openModal(symbol) {
 }
 
 // ── CHART ────────────────────────────────────────────────────────────────────
+
+// MA toggle state — persists across range changes
+const maVisible = {20: true, 50: true, 200: true};
+
+// Treasury rate — fetched once on page load
+let riskFreeAnnual = 0.044; // fallback
+(async function fetchTreasuryRate() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const res = await fetch(`https://financialmodelingprep.com/stable/treasury-rates?from=${today}&to=${today}&apikey=${FMP_KEY}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length && data[0].year10) {
+      riskFreeAnnual = data[0].year10 / 100;
+    }
+  } catch(e) {}
+})();
+
+function calcSMA(closes, period) {
+  return closes.map((_, i) => {
+    if (i < period - 1) return null;
+    return closes.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+  });
+}
+
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = closes[i] - closes[i - 1];
+    if (diff >= 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains / period, avgLoss = losses / period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    avgGain = (avgGain * (period - 1) + (diff > 0 ? diff : 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + (diff < 0 ? -diff : 0)) / period;
+  }
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return parseFloat((100 - 100 / (1 + rs)).toFixed(1));
+}
+
+function calcSharpe(closes, riskFreeAnnual) {
+  if (closes.length < 2) return null;
+  const returns = [];
+  for (let i = 1; i < closes.length; i++) {
+    returns.push((closes[i] - closes[i - 1]) / closes[i - 1]);
+  }
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
+  const stdDev = Math.sqrt(variance);
+  if (stdDev === 0) return null;
+  const rfDaily = riskFreeAnnual / 252;
+  return parseFloat(((mean - rfDaily) / stdDev * Math.sqrt(252)).toFixed(2));
+}
+
+function computeTech(allData) {
+  if (!allData || allData.length < 2) return null;
+  const closes = allData.map(d => d.close);
+  const last = closes[closes.length - 1];
+  const sma20  = calcSMA(closes, 20);
+  const sma50  = calcSMA(closes, 50);
+  const sma200 = calcSMA(closes, 200);
+  return {
+    rsi:    calcRSI(closes),
+    sharpe: calcSharpe(closes, riskFreeAnnual),
+    ma20:   sma20[sma20.length - 1],
+    ma50:   sma50[sma50.length - 1],
+    ma200:  sma200[sma200.length - 1],
+    // Store full arrays for chart overlay
+    sma20, sma50, sma200
+  };
+}
+
+function toggleMA(period) {
+  maVisible[period] = !maVisible[period];
+  const btn = document.getElementById('ma-btn-' + period);
+  if (btn) btn.classList.toggle('on', maVisible[period]);
+  // Re-render with current range
+  renderChart(filterByRange(chartData, chartRange));
+}
+window.toggleMA = toggleMA;
+
 
 let chartData = [];   // full 3Y history, oldest→newest
 let chartRange = '1Y';
@@ -1330,28 +1451,53 @@ function renderChart(data) {
   const cW = W - PL - PR, cH = H - PT - PB;
 
   const prices = data.map(d => d.close);
-  const minP = Math.min(...prices), maxP = Math.max(...prices);
+
+  // Get MA values for visible range (computed on full dataset, sliced to range)
+  const allCloses = chartData.map(d => d.close);
+  const startIdx = chartData.length - data.length;
+  const sma20  = calcSMA(allCloses, 20).slice(startIdx);
+  const sma50  = calcSMA(allCloses, 50).slice(startIdx);
+  const sma200 = calcSMA(allCloses, 200).slice(startIdx);
+
+  // Scale includes all visible MA values so nothing falls off chart
+  const maVals = [
+    ...(maVisible[20]  ? sma20.filter(v => v !== null)  : []),
+    ...(maVisible[50]  ? sma50.filter(v => v !== null)  : []),
+    ...(maVisible[200] ? sma200.filter(v => v !== null) : []),
+  ];
+  const allVals = [...prices, ...maVals];
+  const minP = Math.min(...allVals), maxP = Math.max(...allVals);
   const range = maxP - minP || 1;
 
   const xScale = i => PL + (i / (data.length - 1)) * cW;
   const yScale = v => PT + cH - ((v - minP) / range) * cH;
 
-  // Build path
+  // Build MA paths
+  function makeMaPath(vals) {
+    let d = '';
+    vals.forEach((v, i) => {
+      if (v === null) return;
+      const cmd = d === '' || vals[i-1] === null ? 'M' : 'L';
+      d += `${cmd}${xScale(i).toFixed(1)},${yScale(v).toFixed(1)} `;
+    });
+    return d.trim();
+  }
+  const ma20Path  = maVisible[20]  ? `<path d="${makeMaPath(sma20)}"  fill="none" stroke="#f0c040" stroke-width="1" opacity="0.85"/>` : '';
+  const ma50Path  = maVisible[50]  ? `<path d="${makeMaPath(sma50)}"  fill="none" stroke="#7c8fff" stroke-width="1" opacity="0.85"/>` : '';
+  const ma200Path = maVisible[200] ? `<path d="${makeMaPath(sma200)}" fill="none" stroke="#f06060" stroke-width="1.2" opacity="0.9"/>` : '';
+
+  // Build price path
   const pts = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(d.close).toFixed(1)}`).join(' ');
-  // Fill path (close down to bottom)
   const fillPts = pts + ` L${xScale(data.length-1).toFixed(1)},${(PT+cH).toFixed(1)} L${PL},${(PT+cH).toFixed(1)} Z`;
 
   const isUp = data[data.length-1].close >= data[0].close;
   const lineColor = isUp ? '#c8f59a' : '#f06060';
-  const fillColor = isUp ? 'rgba(200,245,154,0.08)' : 'rgba(240,96,96,0.08)';
 
-  // Y axis labels — positioned in right margin
   const yLabels = [minP, (minP+maxP)/2, maxP].map(v =>
     `<text x="${W - 2}" y="${yScale(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle"
       font-family="monospace" font-size="8" fill="rgba(122,138,118,0.7)">$${v.toFixed(2)}</text>`
   ).join('');
 
-  // X axis labels — first, middle, last
   const xPts = [0, Math.floor((data.length-1)/2), data.length-1];
   const xLabels = xPts.map(i => {
     const d = new Date(data[i].date);
@@ -1360,7 +1506,6 @@ function renderChart(data) {
       font-family="monospace" font-size="8" fill="rgba(122,138,118,0.6)">${label}</text>`;
   }).join('');
 
-  // Invisible hover rects
   const hoverRects = data.map((d, i) => {
     const x = xScale(i);
     const barW = cW / data.length;
@@ -1378,6 +1523,7 @@ function renderChart(data) {
       </defs>
       <path d="${fillPts}" fill="url(#chartFill)" stroke="none"/>
       <path d="${pts}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${ma20Path}${ma50Path}${ma200Path}
       ${yLabels}
       ${xLabels}
       ${hoverRects}
@@ -1410,7 +1556,6 @@ function renderChart(data) {
       tooltip.textContent = `${d.date}  $${d.close.toFixed(2)}  ${chgSign}${chg}%`;
       tooltip.classList.add('visible');
 
-      // Position tooltip
       const svgRect = svg.getBoundingClientRect();
       const wrapRect = svg.closest('.chart-wrap').getBoundingClientRect();
       const txRaw = (x / W) * svgRect.width + svgRect.left - wrapRect.left;
