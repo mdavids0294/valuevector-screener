@@ -1480,7 +1480,9 @@ async function fetchInsiderTrades(symbol) {
   const pillsEl = document.getElementById('insider-pills');
   const bodyEl  = document.getElementById('insider-body');
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/insider_trades?symbol=eq.${symbol}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
+    const from12m = new Date(); from12m.setFullYear(from12m.getFullYear() - 1);
+    const fromStr = from12m.toISOString().slice(0,10);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/insider_trades?symbol=eq.${symbol}&transaction_date=gte.${fromStr}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
     if (!res.ok) throw new Error();
     const trades = await res.json();
     if (pillsEl) pillsEl.innerHTML = insiderSummary(trades);
@@ -1513,7 +1515,9 @@ async function fetchCongressTrades(symbol) {
   const pillsEl = document.getElementById('congress-pills');
   const bodyEl  = document.getElementById('congress-body');
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/congressional_trades?symbol=eq.${symbol}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
+    const from12m = new Date(); from12m.setFullYear(from12m.getFullYear() - 1);
+    const fromStr = from12m.toISOString().slice(0,10);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/congressional_trades?symbol=eq.${symbol}&transaction_date=gte.${fromStr}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
     if (!res.ok) throw new Error();
     const trades = await res.json();
     if (pillsEl) pillsEl.innerHTML = congressSummary(trades);
