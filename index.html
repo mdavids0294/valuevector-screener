@@ -143,6 +143,23 @@ td.r{text-align:right}
 .score-track{width:44px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
 .score-fill{height:100%;border-radius:1px;transition:width .4s}
 
+/* SEARCH BAR */
+.search-wrap{position:relative;margin-bottom:10px}
+.search-input{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:7px 32px 7px 36px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;transition:border-color .12s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;display:flex;align-items:center}
+.search-clear{position:absolute;right:0;top:0;bottom:0;width:32px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;display:flex;align-items:center;justify-content:center;transition:color .12s;border-radius:0 6px 6px 0}
+.search-clear:hover{color:var(--text2)}
+.search-dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;overflow:hidden;z-index:50;display:none}
+.search-result{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border)}
+.search-result:last-child{border-bottom:none}
+.search-result:hover{background:var(--bg3)}
+.search-result-left{display:flex;align-items:center;gap:10px}
+.search-result-sym{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);min-width:46px}
+.search-result-name{font-family:var(--mono);font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.search-result-sector{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0}
+
 /* STATES */
 .state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:10px;color:var(--text3)}
 .state p{font-size:13px}
@@ -423,6 +440,12 @@ a{color:var(--accent);text-decoration:none}
   </aside>
 
   <main class="main">
+    <div class="search-wrap" style="flex-shrink:0;margin:10px 12px 0">
+      <span class="search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company name…" autocomplete="off">
+      <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear" style="display:none">&#xd7;</button>
+      <div class="search-dropdown" id="search-dropdown"></div>
+    </div>
     <div class="stats">
       <div class="stat"><div class="stat-label">Results</div><div class="stat-val green" id="s-count">—</div></div>
       <div class="stat"><div class="stat-label">Avg P/E</div><div class="stat-val" id="s-pe">—</div></div>
@@ -451,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
 const PRICE_PROXY = '/api/price';
-const FMP_KEY = 'XxulR1uwkcNFM32NUHOn5Rvyt8GMlbJe';
+const FMP_KEY = 'YOUR_FMP_KEY_HERE';
 
 // Logarithmic market cap scale — each step is a meaningful jump
 const MC_SCALE = [
@@ -626,6 +649,8 @@ async function supabaseQuery(params) {
     offset += 1000;
     setStatus(`loading... ${all.length} companies`, '');
   }
+  // Populate allCompanies for search on first load
+  if (!allCompanies.length) allCompanies = all;
   return all;
 }
 
@@ -1076,6 +1101,84 @@ function resetFilters() {
   });
   document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.add('active'));
 }
+
+// ── SEARCH ───────────────────────────────────────────────────────────────────
+
+let allCompanies = [];
+
+function searchCompanies(query) {
+  if (!query) return [];
+  const q = query.trim().toUpperCase();
+  const qLow = query.trim().toLowerCase();
+  const symMatches  = allCompanies.filter(c => c.symbol.startsWith(q));
+  const nameMatches = allCompanies.filter(c => !c.symbol.startsWith(q) && (c.name || '').toLowerCase().includes(qLow));
+  return [...symMatches, ...nameMatches];
+}
+
+function renderDropdown(results) {
+  const dd = document.getElementById('search-dropdown');
+  if (!results.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = results.slice(0, 8).map(c =>
+    '<div class="search-result" onclick="selectResult(\'' + c.symbol + '\')">' +
+    '<div class="search-result-left">' +
+    '<span class="search-result-sym">' + c.symbol + '</span>' +
+    '<span class="search-result-name">' + (c.name || '').substring(0, 40) + '</span>' +
+    '</div>' +
+    '<span class="search-result-sector">' + (c.sector || '') + '</span>' +
+    '</div>'
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function selectResult(symbol) {
+  const c = allCompanies.find(r => r.symbol === symbol);
+  if (!c) return;
+  document.getElementById('search-dropdown').style.display = 'none';
+  document.getElementById('search-input').value = c.symbol;
+  if (!lastResults.find(r => r.symbol === symbol)) lastResults = [c, ...lastResults];
+  openModal(symbol);
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-dropdown').style.display = 'none';
+  document.getElementById('search-clear').style.display = 'none';
+  renderTable(lastResults);
+}
+
+function runSearchEnter(query, results) {
+  document.getElementById('search-dropdown').style.display = 'none';
+  lastResults = results;
+  renderTable(results);
+  setStatus(results.length + ' result' + (results.length !== 1 ? 's' : '') + ' for "' + query + '"', '');
+}
+
+window.selectResult = selectResult;
+window.clearSearch = clearSearch;
+
+document.getElementById('search-input').addEventListener('input', function() {
+  const val = this.value;
+  document.getElementById('search-clear').style.display = val ? 'flex' : 'none';
+  if (!val.trim()) { document.getElementById('search-dropdown').style.display = 'none'; return; }
+  if (allCompanies.length) renderDropdown(searchCompanies(val));
+});
+
+document.getElementById('search-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const results = searchCompanies(this.value);
+    if (results.length) runSearchEnter(this.value.trim(), results);
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('search-dropdown').style.display = 'none';
+    this.blur();
+  }
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.search-wrap')) {
+    document.getElementById('search-dropdown').style.display = 'none';
+  }
+});
 
 loadPresets();
 
