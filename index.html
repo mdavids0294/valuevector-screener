@@ -190,6 +190,13 @@ a{color:var(--accent);text-decoration:none}
 .modal-ratio-grid-h .modal-ratio-row{flex-direction:column;align-items:flex-start;gap:3px;border-bottom:none;border-right:0.5px solid var(--border)}
 .modal-ratio-grid-h .modal-ratio-row:last-child{border-right:none}
 
+/* COMPANY INFO */
+.modal-description{font-family:var(--sans);font-size:11px;color:var(--text2);line-height:1.6;padding:10px 12px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px}
+.modal-company-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.modal-meta-pill{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text2)}
+.modal-meta-pill a{color:var(--text2);text-decoration:none}
+.modal-meta-pill a:hover{color:var(--accent)}
+
 /* CHART */
 .chart-wrap{background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:9px 11px 8px;position:relative}
 .chart-ranges{display:flex;gap:1px;margin-bottom:6px}
@@ -595,7 +602,7 @@ function setStatus(text, state) {
 let sortCol = 'pe', sortDir = 1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1201,6 +1208,23 @@ function openModal(symbol) {
     '<button class="chart-range-btn' + (i===3?' active':'') + '" onclick="setChartRange(\'' + r + '\')">' + r + '</button>'
   ).join('');
 
+  // Company meta pills
+  const metaItems = [];
+  if (c.ceo) metaItems.push('CEO: ' + c.ceo);
+  if (c.employees) metaItems.push(Number(c.employees).toLocaleString() + ' employees');
+  if (c.city && c.state) metaItems.push(c.city + ', ' + c.state);
+  if (c.ipo_date) metaItems.push('IPO: ' + new Date(c.ipo_date).getFullYear());
+  if (c.beta) metaItems.push('β ' + parseFloat(c.beta).toFixed(2));
+  if (c.website) metaItems.push('<a href="' + c.website + '" target="_blank" rel="noopener">' + c.website.replace(/^https?:\/\//, '') + '</a>');
+  const metaPillsHtml = metaItems.length
+    ? '<div class="modal-company-meta">' + metaItems.map(i => '<span class="modal-meta-pill">' + i + '</span>').join('') + '</div>'
+    : '';
+
+  // Description
+  const descriptionHtml = c.description
+    ? '<div class="modal-description">' + c.description + '</div>'
+    : '';
+
   document.getElementById('modal-backdrop').innerHTML = `
     <div class="modal-box" id="modal-box">
       <div class="modal-header">
@@ -1220,6 +1244,8 @@ function openModal(symbol) {
       </div>
       <div class="modal-body">
         <div class="modal-stats">${statsHtml}</div>
+        ${metaPillsHtml}
+        ${descriptionHtml}
         <div class="chart-wrap">
           <div class="chart-ranges" id="chart-ranges">${rangesHtml}</div>
           <div id="chart-container"><div class="chart-loading">Loading chart…</div></div>
