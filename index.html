@@ -1224,7 +1224,7 @@ function addRecent(symbol) {
   const idx = recentSymbols.indexOf(symbol);
   if (idx > -1) recentSymbols.splice(idx, 1);
   recentSymbols.unshift(symbol);
-  if (recentSymbols.length > 5) recentSymbols.pop();
+  if (recentSymbols.length > 10) recentSymbols.pop();
   renderRecents();
 }
 
