@@ -158,7 +158,7 @@ a{color:var(--accent);text-decoration:none}
 /* MODAL */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s;pointer-events:none}
 .modal-backdrop.visible{opacity:1;pointer-events:all}
-.modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;transform:translateY(14px);transition:transform .18s}
+.modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:96vh;overflow-y:auto;transform:translateY(14px);transition:transform .18s}
 .modal-box::-webkit-scrollbar{width:3px}
 .modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .modal-backdrop.visible .modal-box{transform:translateY(0)}
@@ -189,6 +189,53 @@ a{color:var(--accent);text-decoration:none}
 .modal-ratio-grid-h{display:grid;border:0.5px solid var(--border);border-radius:6px;overflow:hidden}
 .modal-ratio-grid-h .modal-ratio-row{flex-direction:column;align-items:flex-start;gap:3px;border-bottom:none;border-right:0.5px solid var(--border)}
 .modal-ratio-grid-h .modal-ratio-row:last-child{border-right:none}
+
+/* CHART */
+.chart-wrap{background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:9px 11px 8px;position:relative}
+.chart-ranges{display:flex;gap:1px;margin-bottom:6px}
+.chart-range-btn{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 4px;border-radius:3px;border:0.5px solid transparent;background:transparent;color:var(--text3);cursor:pointer;transition:all .12s}
+.chart-range-btn:hover{color:var(--text2)}
+.chart-range-btn.active{background:var(--bg2);border-color:var(--border2);color:var(--accent)}
+.chart-svg{width:100%;height:195px;display:block;overflow:visible}
+.chart-loading{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;padding:40px 0}
+.chart-tooltip{position:absolute;background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:5px 8px;font-family:var(--mono);font-size:10px;color:var(--text);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:10}
+.chart-tooltip.visible{opacity:1}
+
+/* TRADING SECTIONS */
+.trade-sec{margin-top:2px}
+.trade-sec-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:7px 11px;border:0.5px solid var(--border);border-radius:6px;transition:border-color .1s;user-select:none}
+.trade-sec-header:hover{border-color:var(--border2)}
+.trade-sec-header.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+.trade-sec-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.trade-sec-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.trade-pills{display:flex;gap:4px;align-items:center}
+.tpill{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500}
+.tpill-buy{background:rgba(200,245,154,0.1);color:var(--accent)}
+.tpill-sell{background:rgba(240,96,96,0.1);color:var(--red)}
+.tpill-net-buy{background:rgba(200,245,154,0.15);color:var(--accent)}
+.tpill-net-sell{background:rgba(240,96,96,0.15);color:var(--red)}
+.tpill-neutral{background:rgba(122,138,118,0.08);color:var(--text2)}
+.trade-chevron{font-family:var(--mono);font-size:9px;color:var(--text3);transition:transform .15s}
+.trade-chevron.open{transform:rotate(180deg)}
+.trade-table-wrap{border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px;overflow:hidden}
+.trade-row{display:grid;padding:6px 11px;border-bottom:0.5px solid var(--border);align-items:center;font-family:var(--mono);font-size:10px}
+.trade-row:last-child{border-bottom:none}
+.trade-row.thead{background:var(--bg3)}
+.trade-row.thead span{font-size:9px;color:var(--text3)}
+.insider-row{grid-template-columns:1fr 72px 64px 64px 52px}
+.congress-row{grid-template-columns:1fr 72px 110px 52px}
+.tr-name{color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-role{color:var(--text2);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-meta{display:flex;flex-direction:column;gap:1px}
+.tr-type{font-size:10px;font-weight:500}
+.tr-buy{color:var(--accent)}
+.tr-sell{color:var(--red)}
+.tr-award{color:var(--text2)}
+.tr-r{text-align:right}
+.tr-muted{color:var(--text2);text-align:right}
+.tr-dim{color:var(--text3);text-align:right;font-size:9px}
+.trade-empty{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
+.trade-loading{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
 </style>
 </head>
 <body>
@@ -1151,6 +1198,10 @@ function openModal(symbol) {
 
   const sectionsHtml = MODAL_SECTIONS.map(s => renderModalSection(s, c)).join('');
 
+  const rangesHtml = ['1M','3M','6M','1Y','2Y','3Y'].map((r,i) =>
+    '<button class="chart-range-btn' + (i===3?' active':'') + '" onclick="setChartRange(\'' + r + '\')">' + r + '</button>'
+  ).join('');
+
   document.getElementById('modal-backdrop').innerHTML = `
     <div class="modal-box" id="modal-box">
       <div class="modal-header">
@@ -1163,21 +1214,336 @@ function openModal(symbol) {
         <div style="display:flex;align-items:flex-start">
           <div class="modal-price">
             <span class="modal-price-val">${priceFmt}</span>
-            ${chgFmt ? `<span class="modal-price-chg modal-ratio-val ${chgCls}">${chgFmt}</span>` : ''}
+            ${chgFmt ? '<span class="modal-price-chg modal-ratio-val ' + chgCls + '">' + chgFmt + '</span>' : ''}
           </div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
       </div>
       <div class="modal-body">
         <div class="modal-stats">${statsHtml}</div>
+        <div class="chart-wrap">
+          <div class="chart-ranges" id="chart-ranges">${rangesHtml}</div>
+          <div id="chart-container"><div class="chart-loading">Loading chart…</div></div>
+          <div class="chart-tooltip" id="chart-tooltip"></div>
+        </div>
         <div class="modal-sections">${sectionsHtml}</div>
+        <div class="trade-sec" id="insider-sec">
+          <div class="trade-sec-header" onclick="toggleTradeSec('insider')">
+            <div class="trade-sec-left">
+              <span class="trade-sec-title">Insider trades</span>
+              <div class="trade-pills" id="insider-pills"><span class="tpill tpill-neutral">Loading…</span></div>
+            </div>
+            <span class="trade-chevron" id="insider-chevron">▼</span>
+          </div>
+          <div id="insider-body"><div class="trade-loading">Loading…</div></div>
+        </div>
+        <div class="trade-sec" id="congress-sec">
+          <div class="trade-sec-header" onclick="toggleTradeSec('congress')">
+            <div class="trade-sec-left">
+              <span class="trade-sec-title">Congressional trades</span>
+              <div class="trade-pills" id="congress-pills"><span class="tpill tpill-neutral">Loading…</span></div>
+            </div>
+            <span class="trade-chevron" id="congress-chevron">▼</span>
+          </div>
+          <div id="congress-body"><div class="trade-loading">Loading…</div></div>
+        </div>
       </div>
     </div>`;
 
   const bd = document.getElementById('modal-backdrop');
   bd.style.display = 'flex';
   requestAnimationFrame(() => bd.classList.add('visible'));
+
+  // Fetch chart and trading data in parallel
+  chartData = [];
+  chartRange = '1Y';
+  fetchChartData(c.symbol).then(data => {
+    chartData = data;
+    renderChart(filterByRange(chartData, chartRange));
+  });
+  fetchInsiderTrades(c.symbol);
+  fetchCongressTrades(c.symbol);
 }
+
+// ── CHART ────────────────────────────────────────────────────────────────────
+
+let chartData = [];   // full 3Y history, oldest→newest
+let chartRange = '1Y';
+
+const RANGE_DAYS = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365, '2Y': 730, '3Y': 1095 };
+
+async function fetchChartData(symbol) {
+  const fromDate = new Date();
+  fromDate.setFullYear(fromDate.getFullYear() - 3);
+  const from = fromDate.toISOString().slice(0, 10);
+  const url = `${SUPABASE_URL}/rest/v1/prices?symbol=eq.${symbol}&date=gte.${from}&order=date.asc&limit=1000&select=date,close`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch(e) { return []; }
+}
+
+function filterByRange(data, range) {
+  const days = RANGE_DAYS[range] || 365;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return data.filter(d => new Date(d.date) >= cutoff);
+}
+
+function renderChart(data) {
+  const container = document.getElementById('chart-container');
+  if (!container) return;
+  if (!data || data.length < 2) {
+    container.innerHTML = '<div class="chart-loading">No data available</div>';
+    return;
+  }
+
+  const W = 560, H = 195, PL = 8, PR = 50, PT = 8, PB = 20;
+  const cW = W - PL - PR, cH = H - PT - PB;
+
+  const prices = data.map(d => d.close);
+  const minP = Math.min(...prices), maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+
+  const xScale = i => PL + (i / (data.length - 1)) * cW;
+  const yScale = v => PT + cH - ((v - minP) / range) * cH;
+
+  // Build path
+  const pts = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(d.close).toFixed(1)}`).join(' ');
+  // Fill path (close down to bottom)
+  const fillPts = pts + ` L${xScale(data.length-1).toFixed(1)},${(PT+cH).toFixed(1)} L${PL},${(PT+cH).toFixed(1)} Z`;
+
+  const isUp = data[data.length-1].close >= data[0].close;
+  const lineColor = isUp ? '#c8f59a' : '#f06060';
+  const fillColor = isUp ? 'rgba(200,245,154,0.08)' : 'rgba(240,96,96,0.08)';
+
+  // Y axis labels — positioned in right margin
+  const yLabels = [minP, (minP+maxP)/2, maxP].map(v =>
+    `<text x="${W - 2}" y="${yScale(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle"
+      font-family="monospace" font-size="8" fill="rgba(122,138,118,0.7)">$${v.toFixed(2)}</text>`
+  ).join('');
+
+  // X axis labels — first, middle, last
+  const xPts = [0, Math.floor((data.length-1)/2), data.length-1];
+  const xLabels = xPts.map(i => {
+    const d = new Date(data[i].date);
+    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    return `<text x="${xScale(i).toFixed(1)}" y="${H - 4}" text-anchor="${i === 0 ? 'start' : i === data.length-1 ? 'end' : 'middle'}"
+      font-family="monospace" font-size="8" fill="rgba(122,138,118,0.6)">${label}</text>`;
+  }).join('');
+
+  // Invisible hover rects
+  const hoverRects = data.map((d, i) => {
+    const x = xScale(i);
+    const barW = cW / data.length;
+    return `<rect x="${(x - barW/2).toFixed(1)}" y="${PT}" width="${barW.toFixed(1)}" height="${cH}"
+      fill="transparent" class="chart-hover-rect" data-i="${i}"/>`;
+  }).join('');
+
+  container.innerHTML = `
+    <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="chart-svg" style="width:100%;height:195px;display:block;overflow:visible">
+      <defs>
+        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${fillPts}" fill="url(#chartFill)" stroke="none"/>
+      <path d="${pts}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${yLabels}
+      ${xLabels}
+      ${hoverRects}
+      <line id="chart-crosshair" x1="0" y1="${PT}" x2="0" y2="${PT+cH}" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="3,3" opacity="0"/>
+      <circle id="chart-dot" cx="0" cy="0" r="3" fill="${lineColor}" stroke="var(--bg3)" stroke-width="1.5" opacity="0"/>
+    </svg>`;
+
+  // Attach hover events
+  const svg = document.getElementById('chart-svg');
+  const tooltip = document.getElementById('chart-tooltip');
+  const crosshair = document.getElementById('chart-crosshair');
+  const dot = document.getElementById('chart-dot');
+
+  container.querySelectorAll('.chart-hover-rect').forEach(rect => {
+    rect.addEventListener('mouseenter', () => {
+      const i = parseInt(rect.dataset.i);
+      const d = data[i];
+      const x = xScale(i);
+      const y = yScale(d.close);
+      const chg = i > 0 ? ((d.close - data[i-1].close) / data[i-1].close * 100).toFixed(2) : '0.00';
+      const chgSign = chg >= 0 ? '+' : '';
+
+      crosshair.setAttribute('x1', x.toFixed(1));
+      crosshair.setAttribute('x2', x.toFixed(1));
+      crosshair.setAttribute('opacity', '1');
+      dot.setAttribute('cx', x.toFixed(1));
+      dot.setAttribute('cy', y.toFixed(1));
+      dot.setAttribute('opacity', '1');
+
+      tooltip.textContent = `${d.date}  $${d.close.toFixed(2)}  ${chgSign}${chg}%`;
+      tooltip.classList.add('visible');
+
+      // Position tooltip
+      const svgRect = svg.getBoundingClientRect();
+      const wrapRect = svg.closest('.chart-wrap').getBoundingClientRect();
+      const txRaw = (x / W) * svgRect.width + svgRect.left - wrapRect.left;
+      const tyRaw = (y / H) * svgRect.height + svgRect.top - wrapRect.top;
+      const tx = Math.min(txRaw, wrapRect.width - 160);
+      tooltip.style.left = Math.max(0, tx) + 'px';
+      tooltip.style.top = (tyRaw - 30) + 'px';
+    });
+    rect.addEventListener('mouseleave', () => {
+      crosshair.setAttribute('opacity', '0');
+      dot.setAttribute('opacity', '0');
+      tooltip.classList.remove('visible');
+    });
+  });
+}
+
+function setChartRange(range) {
+  chartRange = range;
+  document.querySelectorAll('.chart-range-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === range);
+  });
+  renderChart(filterByRange(chartData, range));
+}
+
+window.setChartRange = setChartRange;
+
+// ── TRADING SECTIONS ─────────────────────────────────────────────────────────
+
+const TRADE_HDRS = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
+
+function toggleTradeSec(id) {
+  const body = document.getElementById(id + '-body');
+  const chev = document.getElementById(id + '-chevron');
+  const hdr  = chev.closest('.trade-sec-header');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  chev.classList.toggle('open', !open);
+  hdr.classList.toggle('open', !open);
+}
+
+function insiderSummary(trades) {
+  const bought = trades.filter(t => t.transaction_type === 'P-Purchase').reduce((s,t) => s + (t.securities_transacted||0), 0);
+  const sold   = trades.filter(t => t.transaction_type === 'S-Sale').reduce((s,t) => s + (t.securities_transacted||0), 0);
+  const net    = bought - sold;
+  if (!bought && !sold) return '<span class="tpill tpill-neutral">No open market activity</span>';
+  const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'K' : n.toFixed(0);
+  let html = '';
+  if (bought) html += '<span class="tpill tpill-buy">↑ ' + fmt(bought) + ' bought</span>';
+  if (sold)   html += '<span class="tpill tpill-sell">↓ ' + fmt(sold) + ' sold</span>';
+  if (bought && sold) html += '<span class="tpill ' + (net>=0?'tpill-net-buy':'tpill-net-sell') + '">net ' + (net>=0?'+':'') + fmt(net) + '</span>';
+  return html;
+}
+
+function congressSummary(trades) {
+  const bought = trades.filter(t => t.transaction_type === 'Purchase').length;
+  const sold   = trades.filter(t => t.transaction_type === 'Sale' || t.transaction_type === 'Sale (Partial)').length;
+  if (!bought && !sold) return '<span class="tpill tpill-neutral">No activity</span>';
+  let html = '';
+  if (bought) html += '<span class="tpill tpill-buy">↑ ' + bought + ' purchase' + (bought>1?'s':'') + '</span>';
+  if (sold)   html += '<span class="tpill tpill-sell">↓ ' + sold + ' sale' + (sold>1?'s':'') + '</span>';
+  const netBuy = bought > sold;
+  html += '<span class="tpill ' + (bought===sold?'tpill-neutral':netBuy?'tpill-net-buy':'tpill-net-sell') + '">net ' + (bought===sold?'neutral':netBuy?'buying':'selling') + '</span>';
+  return html;
+}
+
+function fmtTradeDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
+function fmtShares(n) {
+  if (!n) return '—';
+  return n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'K' : n.toFixed(0);
+}
+
+function tradeTypeClass(t) {
+  if (!t) return '';
+  if (t.includes('Purchase') || t === 'A') return 'tr-buy';
+  if (t.includes('Sale')) return 'tr-sell';
+  return 'tr-award';
+}
+
+function tradeTypeLabel(t) {
+  if (!t) return '—';
+  if (t === 'P-Purchase') return 'Purchase';
+  if (t === 'S-Sale') return 'Sale';
+  if (t === 'A-Award') return 'Award';
+  return t;
+}
+
+async function fetchInsiderTrades(symbol) {
+  const pillsEl = document.getElementById('insider-pills');
+  const bodyEl  = document.getElementById('insider-body');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/insider_trades?symbol=eq.${symbol}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
+    if (!res.ok) throw new Error();
+    const trades = await res.json();
+    if (pillsEl) pillsEl.innerHTML = insiderSummary(trades);
+    if (!bodyEl) return;
+    if (!trades.length) {
+      bodyEl.innerHTML = '<div class="trade-empty">No recent insider activity</div>';
+      return;
+    }
+    const rows = trades.map(t => {
+      const cls = tradeTypeClass(t.transaction_type);
+      const lbl = tradeTypeLabel(t.transaction_type);
+      return '<div class="trade-row insider-row">' +
+        '<div class="tr-meta"><span class="tr-name">' + (t.reporting_name||'—') + '</span><span class="tr-role">' + (t.type_of_owner||'') + '</span></div>' +
+        '<span class="tr-type ' + cls + '">' + lbl + '</span>' +
+        '<span class="tr-r">' + fmtShares(t.securities_transacted) + '</span>' +
+        '<span class="tr-muted">' + (t.price ? '$'+parseFloat(t.price).toFixed(2) : '—') + '</span>' +
+        '<span class="tr-dim">' + fmtTradeDate(t.transaction_date) + '</span>' +
+        '</div>';
+    }).join('');
+    bodyEl.innerHTML = '<div class="trade-table-wrap">' +
+      '<div class="trade-row insider-row thead"><span>Name / role</span><span>Type</span><span class="tr-r">Shares</span><span class="tr-r">Price</span><span class="tr-dim">Date</span></div>' +
+      rows + '</div>';
+  } catch(e) {
+    if (pillsEl) pillsEl.innerHTML = '<span class="tpill tpill-neutral">—</span>';
+    if (bodyEl)  bodyEl.innerHTML = '<div class="trade-empty">Failed to load</div>';
+  }
+}
+
+async function fetchCongressTrades(symbol) {
+  const pillsEl = document.getElementById('congress-pills');
+  const bodyEl  = document.getElementById('congress-body');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/congressional_trades?symbol=eq.${symbol}&order=transaction_date.desc&limit=20`, { headers: TRADE_HDRS });
+    if (!res.ok) throw new Error();
+    const trades = await res.json();
+    if (pillsEl) pillsEl.innerHTML = congressSummary(trades);
+    if (!bodyEl) return;
+    if (!trades.length) {
+      bodyEl.innerHTML = '<div class="trade-empty">No recent congressional activity</div>';
+      return;
+    }
+    const rows = trades.map(t => {
+      const cls = t.transaction_type === 'Purchase' ? 'tr-buy' : t.transaction_type?.includes('Sale') ? 'tr-sell' : 'tr-award';
+      const chamber = t.chamber === 'senate' ? 'Senate' : 'House';
+      const district = t.district ? ' · ' + t.district : '';
+      return '<div class="trade-row congress-row">' +
+        '<div class="tr-meta"><span class="tr-name">' + (t.last_name||'') + ' ' + (t.first_name||'') + '</span><span class="tr-role">' + chamber + district + '</span></div>' +
+        '<span class="tr-type ' + cls + '">' + (t.transaction_type||'—') + '</span>' +
+        '<span class="tr-muted">' + (t.amount||'—') + '</span>' +
+        '<span class="tr-dim">' + fmtTradeDate(t.transaction_date) + '</span>' +
+        '</div>';
+    }).join('');
+    bodyEl.innerHTML = '<div class="trade-table-wrap">' +
+      '<div class="trade-row congress-row thead"><span>Name / chamber</span><span>Type</span><span class="tr-r">Amount</span><span class="tr-dim">Date</span></div>' +
+      rows + '</div>';
+  } catch(e) {
+    if (pillsEl) pillsEl.innerHTML = '<span class="tpill tpill-neutral">—</span>';
+    if (bodyEl)  bodyEl.innerHTML = '<div class="trade-empty">Failed to load</div>';
+  }
+}
+
+window.toggleTradeSec = toggleTradeSec;
 
 function closeModal() {
   const bd = document.getElementById('modal-backdrop');
@@ -1205,6 +1571,7 @@ window.deletePreset = deletePreset;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.resetFilters = resetFilters;
+
 
 }); // end DOMContentLoaded
 </script>
