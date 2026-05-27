@@ -221,8 +221,8 @@ a{color:var(--accent);text-decoration:none}
 .trade-row:last-child{border-bottom:none}
 .trade-row.thead{background:var(--bg3)}
 .trade-row.thead span{font-size:9px;color:var(--text3)}
-.insider-row{grid-template-columns:1fr 72px 64px 64px 52px}
-.congress-row{grid-template-columns:1fr 72px 110px 52px}
+.insider-row{grid-template-columns:1fr 72px 64px 64px 62px}
+.congress-row{grid-template-columns:1fr 72px 110px 62px}
 .tr-name{color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-role{color:var(--text2);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-meta{display:flex;flex-direction:column;gap:1px}
@@ -428,7 +428,7 @@ a{color:var(--accent);text-decoration:none}
     </div>
 
     <div class="footer">
-      <span class="footer-text">thevaluevector.com · investment discovery</span>
+      <span class="footer-text">thevaluevector.com · small &amp; midcap discovery</span>
       <span class="footer-text">Data: FMP · Prices: Yahoo Finance</span>
     </div>
   </main>
@@ -1453,7 +1453,7 @@ function congressSummary(trades) {
 function fmtTradeDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'2-digit' });
 }
 
 function fmtShares(n) {
