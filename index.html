@@ -215,8 +215,7 @@ a{color:var(--accent);text-decoration:none}
 .tpill-net-buy{background:rgba(200,245,154,0.15);color:var(--accent)}
 .tpill-net-sell{background:rgba(240,96,96,0.15);color:var(--red)}
 .tpill-neutral{background:rgba(122,138,118,0.08);color:var(--text2)}
-.trade-chevron{font-family:var(--mono);font-size:9px;color:var(--text3);transition:transform .15s}
-.trade-chevron.open{transform:rotate(180deg)}
+.trade-chevron{font-family:var(--mono);font-size:9px;color:var(--text3)}
 .trade-table-wrap{border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px;overflow:hidden}
 .trade-row{display:grid;padding:6px 11px;border-bottom:0.5px solid var(--border);align-items:center;font-family:var(--mono);font-size:10px}
 .trade-row:last-child{border-bottom:none}
@@ -1233,9 +1232,9 @@ function openModal(symbol) {
               <span class="trade-sec-title">Insider trades</span>
               <div class="trade-pills" id="insider-pills"><span class="tpill tpill-neutral">Loading…</span></div>
             </div>
-            <span class="trade-chevron" id="insider-chevron">▼</span>
+            <span class="trade-chevron" id="insider-chevron">▶</span>
           </div>
-          <div id="insider-body"><div class="trade-loading">Loading…</div></div>
+          <div id="insider-body" style="display:none"><div class="trade-loading">Loading…</div></div>
         </div>
         <div class="trade-sec" id="congress-sec">
           <div class="trade-sec-header" onclick="toggleTradeSec('congress')">
@@ -1243,9 +1242,9 @@ function openModal(symbol) {
               <span class="trade-sec-title">Congressional trades</span>
               <div class="trade-pills" id="congress-pills"><span class="tpill tpill-neutral">Loading…</span></div>
             </div>
-            <span class="trade-chevron" id="congress-chevron">▼</span>
+            <span class="trade-chevron" id="congress-chevron">▶</span>
           </div>
-          <div id="congress-body"><div class="trade-loading">Loading…</div></div>
+          <div id="congress-body" style="display:none"><div class="trade-loading">Loading…</div></div>
         </div>
       </div>
     </div>`;
@@ -1422,7 +1421,7 @@ function toggleTradeSec(id) {
   const hdr  = chev.closest('.trade-sec-header');
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : '';
-  chev.classList.toggle('open', !open);
+  chev.textContent = open ? '▶' : '▼';
   hdr.classList.toggle('open', !open);
 }
 
