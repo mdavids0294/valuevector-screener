@@ -159,6 +159,8 @@ td.r{text-align:right}
 .search-result-sym{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);min-width:46px}
 .search-result-name{font-family:var(--mono);font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .search-result-sector{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0}
+.recent-btn{font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:4px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .12s;flex-shrink:0}
+.recent-btn:hover{border-color:var(--border2);color:var(--accent)}
 
 /* STATES */
 .state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:10px;color:var(--text3)}
@@ -440,11 +442,16 @@ a{color:var(--accent);text-decoration:none}
   </aside>
 
   <main class="main">
-    <div class="search-wrap" style="flex-shrink:0;margin:10px 12px 0">
-      <span class="search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
-      <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company name…" autocomplete="off">
-      <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear" style="display:none">&#xd7;</button>
-      <div class="search-dropdown" id="search-dropdown"></div>
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;margin:10px 12px 0;overflow:hidden" id="search-top-row">
+      <div class="search-wrap" style="width:50%;flex-shrink:0">
+        <span class="search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+        <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company name…" autocomplete="off">
+        <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear" style="display:none">&#xd7;</button>
+        <div class="search-dropdown" id="search-dropdown"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;flex:1;overflow:hidden;min-width:0" id="recents-row">
+        <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);white-space:nowrap;flex-shrink:0" id="recents-label" hidden>Recent</span>
+      </div>
     </div>
     <div class="stats">
       <div class="stat"><div class="stat-label">Results</div><div class="stat-val green" id="s-count">—</div></div>
@@ -1197,7 +1204,41 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Pre-load all companies for search on page load
+// ── RECENT STOCKS ────────────────────────────────────────────────────────────
+
+const recentSymbols = []; // most recent first, max 5
+
+function addRecent(symbol) {
+  const idx = recentSymbols.indexOf(symbol);
+  if (idx > -1) recentSymbols.splice(idx, 1);
+  recentSymbols.unshift(symbol);
+  if (recentSymbols.length > 5) recentSymbols.pop();
+  renderRecents();
+}
+
+function renderRecents() {
+  const row = document.getElementById('recents-row');
+  const label = document.getElementById('recents-label');
+  if (!recentSymbols.length) { label.hidden = true; return; }
+  label.hidden = false;
+  // Remove old buttons
+  row.querySelectorAll('.recent-btn').forEach(b => b.remove());
+  const topRow = document.getElementById('search-top-row');
+  for (const sym of recentSymbols) {
+    const btn = document.createElement('button');
+    btn.className = 'recent-btn';
+    btn.textContent = sym;
+    btn.onclick = () => {
+      const c = allCompanies.find(r => r.symbol === sym) || lastResults.find(r => r.symbol === sym);
+      if (c) { if (!lastResults.find(r => r.symbol === sym)) lastResults = [c, ...lastResults]; openModal(sym); }
+    };
+    row.appendChild(btn);
+    if (row.scrollWidth > topRow.clientWidth) { btn.remove(); break; }
+  }
+}
+
+window.addEventListener('resize', renderRecents);
+window.renderRecents = renderRecents;
 (async function preloadCompanies() {
   const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
   let all = [], offset = 0;
@@ -1329,6 +1370,7 @@ function renderModalSection(section, c) {
 function openModal(symbol) {
   const c = lastResults.find(r => r.symbol === symbol);
   if (!c) return;
+  addRecent(symbol);
   const r = c.ratios;
   const lp = c.live;
 
