@@ -1124,14 +1124,15 @@ function buildQuery() {
   if (mcMin > 0) params += `market_cap=gte.${Math.round(mcMin)}&`;
   if (mcMax !== null) params += `market_cap=lte.${Math.round(mcMax)}&`;
   if (volMin > 0) params += `volume=gte.${Math.round(volMin)}&`;
-  // Industry takes precedence: if specific industries are chosen, filter on those
-  // (each maps to one sector, so this already respects the sector scope).
+  // Industry takes precedence: if specific industries are chosen, filter on those.
+  // Values must be URL-encoded — names like "Aerospace & Defense" contain '&'
+  // and spaces that otherwise break the query string.
   const inds = Array.from(selectedIndustries);
   if (inds.length > 0) {
-    params += `industry=in.(${inds.map(s => `"${s}"`).join(',')})&`;
+    params += `industry=in.(${inds.map(s => `"${encodeURIComponent(s)}"`).join(',')})&`;
   } else if (activeSectors.length > 0 && activeSectors.length < 11) {
     // No specific industries: filter by selected sectors (none selected = all sectors)
-    params += `sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})&`;
+    params += `sector=in.(${activeSectors.map(s => `"${encodeURIComponent(s)}"`).join(',')})&`;
   }
   params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true`;
   return params;
