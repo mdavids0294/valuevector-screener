@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Value Vector — Screener</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b09'/%3E%3Ctext x='5' y='23' font-family='Georgia,serif' font-size='20' font-style='italic' font-weight='700' fill='%23c8f59a'%3EV%3C/text%3E%3Ctext x='20' y='16' font-family='monospace' font-size='9' font-weight='500' fill='%239ed870'%3E2%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -32,8 +32,7 @@ body{display:flex;flex-direction:column}
 /* HEADER */
 header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:0.5px solid var(--border);background:var(--bg)}
 .logo{display:inline-flex;align-items:center;gap:0}
-.logo-v2{font-family:var(--serif);font-size:28px;font-style:italic;font-weight:700;color:var(--accent);line-height:1;letter-spacing:-.02em;padding-right:16px;-webkit-text-stroke:0.5px var(--accent)}
-.logo-v2 sup{font-family:var(--mono);font-size:11px;font-style:normal;font-weight:500;color:var(--accent2);line-height:0;letter-spacing:0;margin-left:7px;position:relative;top:-7px}
+.logo-v2{height:28px;width:auto;display:block;padding-right:16px}
 .logo-divider{width:1px;height:30px;background:var(--border2);margin-right:16px;flex-shrink:0}
 .logo-wordmark{display:flex;flex-direction:column;gap:5px}
 .logo-name{font-family:var(--serif);font-size:18px;font-style:italic;font-weight:400;color:var(--text);letter-spacing:-.01em;line-height:1}
@@ -272,11 +271,11 @@ a{color:var(--accent);text-decoration:none}
 
 <header>
   <div class="logo">
-    <div class="logo-v2">V<sup>2</sup></div>
+    <svg class="logo-v2" viewBox="4.5 6.5 23 19" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="V squared"><path d="M11.04 21.12L16.56 12.63Q17.19 11.69 17.20 11.14Q17.21 10.60 16.75 10.35Q16.29 10.09 15.45 10.05L15.45 10.05L15.55 9.63Q15.85 9.65 16.34 9.66Q16.84 9.67 17.38 9.68Q17.93 9.69 18.30 9.69L18.30 9.69Q18.79 9.69 19.17 9.67Q19.54 9.65 19.88 9.63L19.88 9.63L19.78 10.05Q19.36 10.16 18.98 10.38Q18.60 10.60 18.19 11.05Q17.78 11.50 17.28 12.28L17.28 12.28L9.25 24.61Q8.98 24.58 8.72 24.58Q8.46 24.58 8.18 24.61L8.18 24.61L6.52 11.40Q6.44 10.64 6.08 10.36Q5.73 10.07 5.43 10.05L5.43 10.05L5.54 9.63Q6.08 9.65 6.92 9.67Q7.76 9.69 8.56 9.69L8.56 9.69Q9.57 9.69 10.40 9.67Q11.23 9.65 11.77 9.63L11.77 9.63L11.67 10.05Q11.00 10.07 10.60 10.21Q10.20 10.35 10.05 10.70Q9.91 11.06 9.99 11.82L9.99 11.82L11.04 21.12Z" fill="#c8f59a"></path><path d="M25.00 7.16L25.00 7.16Q25.82 7.16 26.30 7.47Q26.77 7.78 26.77 8.31L26.77 8.31Q26.77 8.73 26.49 9.12Q26.22 9.50 25.78 9.85Q25.35 10.20 24.85 10.50Q24.35 10.81 23.89 11.08Q23.44 11.35 23.12 11.58L23.12 11.58Q23.39 11.58 23.73 11.66Q24.06 11.73 24.43 11.81Q24.80 11.89 25.14 11.89L25.14 11.89Q25.56 11.89 25.82 11.76Q26.08 11.63 26.08 11.36L26.08 11.36Q26.08 11.03 25.68 10.82L25.68 10.82L25.80 10.68Q26.12 10.84 26.26 11.07Q26.41 11.29 26.41 11.61L26.41 11.61Q26.41 11.97 26.24 12.30Q26.06 12.64 25.69 12.85Q25.32 13.07 24.70 13.07L24.70 13.07Q24.35 13.07 24.01 12.99Q23.67 12.91 23.32 12.83Q22.96 12.75 22.55 12.74L22.55 12.74Q22.13 12.71 21.85 12.79Q21.57 12.86 21.23 13L21.23 13L21.28 12.77Q21.51 12.58 21.89 12.31Q22.26 12.04 22.70 11.70Q23.15 11.36 23.59 10.97Q24.03 10.58 24.40 10.15Q24.78 9.72 25.00 9.27Q25.22 8.82 25.22 8.36L25.22 8.36Q25.22 7.92 25.00 7.69Q24.78 7.47 24.38 7.47L24.38 7.47Q24.06 7.47 23.73 7.61Q23.39 7.75 23.11 8.00Q22.83 8.25 22.66 8.55Q22.49 8.85 22.49 9.17L22.49 9.17Q22.49 9.44 22.64 9.57Q22.79 9.70 23.13 9.70L23.13 9.70Q23.44 9.70 23.66 9.58Q23.89 9.47 24.14 9.25L24.14 9.25L24.27 9.40Q23.96 9.69 23.64 9.81Q23.33 9.93 23.05 9.93L23.05 9.93Q22.88 9.93 22.68 9.87Q22.49 9.81 22.36 9.65Q22.23 9.49 22.23 9.18L22.23 9.18Q22.23 8.82 22.43 8.46Q22.64 8.11 23.01 7.81Q23.38 7.51 23.89 7.33Q24.39 7.16 25.00 7.16Z" fill="#9ed870"></path></svg>
     <div class="logo-divider"></div>
     <div class="logo-wordmark">
       <span class="logo-name">The Value Vector</span>
-      <span class="logo-tag">Screener</span>
+      <span class="logo-tag">Equity Research</span>
     </div>
   </div>
   <div class="header-right">
