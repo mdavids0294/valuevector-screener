@@ -63,6 +63,9 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .section-header{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
 .section-header:hover{background:var(--bg3)}
 .section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);font-weight:500}
+.section-desc{font-family:var(--sans),'DM Sans',sans-serif;font-size:10.5px;line-height:1.45;color:var(--text2);margin:0 0 9px;padding-bottom:9px;border-bottom:0.5px solid var(--border)}
+.group-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);font-weight:500;margin:10px 2px 4px;padding-top:10px;border-top:0.5px solid var(--border)}
+.group-label span{display:block;font-family:var(--sans),'DM Sans',sans-serif;font-size:10px;line-height:1.4;letter-spacing:0;text-transform:none;color:var(--text3);margin-top:4px;font-weight:400}
 .chevron{font-size:9px;color:var(--text3);transition:transform .2s;display:inline-block}
 .chevron.open{transform:rotate(180deg)}
 .section-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-top:0.5px solid var(--border)}
@@ -86,6 +89,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .tog-ctrl{display:flex;gap:10px;font-size:10px;font-family:var(--mono)}
 .tog-ctrl span{color:var(--text3);cursor:pointer}
 .tog-ctrl span:hover{color:var(--accent)}
+/* Discovery subsections + industry selector */
+.subsection-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);font-weight:500;margin:10px 2px 4px;display:flex;align-items:center;justify-content:space-between}
+.section-desc + .subsection-label{margin-top:2px}
+.ind-box{margin-bottom:3px;margin-top:2px;position:relative}
+.ind-search{width:100%;height:32px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:0 32px 0 36px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;transition:border-color .12s}
+.ind-search:focus{border-color:var(--accent)}
+.ind-search::placeholder{color:var(--text3)}
+.ind-search-icon{position:absolute;left:11px;top:0;bottom:0;display:flex;align-items:center;color:var(--text3);pointer-events:none}
+.ind-list{position:fixed;max-height:200px;overflow-y:auto;overflow-x:hidden;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:200}
+.ind-list:empty{display:none}
+.ind-list::-webkit-scrollbar{width:3px}
+.ind-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.ind-opt{display:flex;align-items:center;gap:6px;padding:5px 9px;font-size:10.5px;color:var(--text2);cursor:pointer;transition:background .1s,color .1s;user-select:none}
+.ind-opt:hover{background:var(--bg3);color:var(--text)}
+.ind-opt .ind-pip{width:5px;height:5px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .1s}
+.ind-opt.sel{color:var(--accent)}
+.ind-opt.sel .ind-pip{background:var(--accent)}
+.ind-opt.disabled{opacity:.32;cursor:not-allowed;color:var(--text3)}
+.ind-opt.disabled:hover{background:transparent;color:var(--text3)}
+.ind-opt-sector{margin-left:auto;font-family:var(--mono);font-size:8px;letter-spacing:.04em;color:var(--text3);text-transform:uppercase;flex-shrink:0}
+.ind-empty{padding:8px 9px;font-family:var(--mono);font-size:10px;color:var(--text3);font-style:italic}
+.ind-chips{display:none;flex-wrap:wrap;gap:4px}
+.ind-chips:not(:empty){display:flex;margin-top:8px}
+.ind-chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--accent);background:rgba(200,245,154,0.08);border:0.5px solid rgba(200,245,154,0.3);border-radius:4px;padding:3px 6px;line-height:1}
+.ind-chip span{cursor:pointer;color:var(--text3);font-size:11px;transition:color .1s}
+.ind-chip span:hover{color:var(--red)}
 
 /* PRESETS */
 .preset-list{display:flex;flex-direction:column;gap:3px}
@@ -301,6 +330,7 @@ a{color:var(--accent);text-decoration:none}
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
+        <p class="section-desc">Save a set of filters as a named screen, then reload it any time. Reset returns every filter to its default.</p>
         <div class="preset-list" id="preset-list">
           <span class="preset-empty">Loading...</span>
         </div>
@@ -312,13 +342,17 @@ a{color:var(--accent);text-decoration:none}
       </div>
     </div>
 
-    <!-- Discovery -->
+    <!-- Discovery group label -->
+    <div class="group-label">Discovery<span>Define which companies you're searching — by size, then sector and industry — before screening on financials.</span></div>
+
+    <!-- Market cap -->
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
-        <span class="section-title">Discovery</span>
+        <span class="section-title">Market cap</span>
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
+        <p class="section-desc">Filter by company size and how actively the stock trades. Small/midcaps sit toward the lower end of the cap range.</p>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Market cap min</span><span class="slider-val" id="v-mc-min">No min</span></div>
           <input type="range" min="0" max="29" step="1" value="0" id="mc-min" oninput="syncSlider(this)">
@@ -331,25 +365,47 @@ a{color:var(--accent);text-decoration:none}
           <div class="slider-meta"><span class="slider-label">Min avg daily vol</span><span class="slider-val" id="v-vol">No min</span></div>
           <input type="range" min="0" max="28" step="1" value="0" id="vol" oninput="syncSlider(this)">
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
-          <span style="font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">Sectors</span>
-          <div class="tog-ctrl"><span onclick="setSectors(true)">all</span><span onclick="setSectors(false)">none</span></div>
-        </div>
-        <div class="toggle-grid">
-          <div class="tog active" data-sector="Technology" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Technology</div>
-          <div class="tog active" data-sector="Industrials" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Industrials</div>
-          <div class="tog active" data-sector="Healthcare" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Healthcare</div>
-          <div class="tog active" data-sector="Consumer Cyclical" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Con. Cyclical</div>
-          <div class="tog active" data-sector="Consumer Defensive" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Con. Defensive</div>
-          <div class="tog active" data-sector="Financial Services" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Financials</div>
-          <div class="tog active" data-sector="Energy" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Energy</div>
-          <div class="tog active" data-sector="Basic Materials" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Materials</div>
-          <div class="tog active" data-sector="Real Estate" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Real Estate</div>
-          <div class="tog active" data-sector="Utilities" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Utilities</div>
-          <div class="tog active" data-sector="Communication Services" onclick="this.classList.toggle('active')"><div class="tog-pip"></div>Comm. Services</div>
-        </div>
       </div>
     </div>
+
+    <!-- Sector & industry -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSec(this)">
+        <span class="section-title">Sector &amp; industry</span>
+        <span class="chevron open">▼</span>
+      </div>
+      <div class="section-body">
+        <p class="section-desc">Click sectors to focus on them — leave all unselected to include every sector. Then optionally narrow to specific industries within your selected sectors.</p>
+        <div class="subsection-label"><span>Sectors</span>
+          <div class="tog-ctrl"><span onclick="clearSectors()">clear</span></div>
+        </div>
+        <div class="toggle-grid">
+          <div class="tog" data-sector="Technology" onclick="toggleSector(this)"><div class="tog-pip"></div>Technology</div>
+          <div class="tog" data-sector="Industrials" onclick="toggleSector(this)"><div class="tog-pip"></div>Industrials</div>
+          <div class="tog" data-sector="Healthcare" onclick="toggleSector(this)"><div class="tog-pip"></div>Healthcare</div>
+          <div class="tog" data-sector="Consumer Cyclical" onclick="toggleSector(this)"><div class="tog-pip"></div>Con. Cyclical</div>
+          <div class="tog" data-sector="Consumer Defensive" onclick="toggleSector(this)"><div class="tog-pip"></div>Con. Defensive</div>
+          <div class="tog" data-sector="Financial Services" onclick="toggleSector(this)"><div class="tog-pip"></div>Financials</div>
+          <div class="tog" data-sector="Energy" onclick="toggleSector(this)"><div class="tog-pip"></div>Energy</div>
+          <div class="tog" data-sector="Basic Materials" onclick="toggleSector(this)"><div class="tog-pip"></div>Materials</div>
+          <div class="tog" data-sector="Real Estate" onclick="toggleSector(this)"><div class="tog-pip"></div>Real Estate</div>
+          <div class="tog" data-sector="Utilities" onclick="toggleSector(this)"><div class="tog-pip"></div>Utilities</div>
+          <div class="tog" data-sector="Communication Services" onclick="toggleSector(this)"><div class="tog-pip"></div>Comm. Services</div>
+        </div>
+        <div class="subsection-label"><span>Industries</span>
+          <div class="tog-ctrl"><span onclick="clearIndustries()">clear</span></div>
+        </div>
+        <div class="ind-box">
+          <span class="ind-search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+          <input class="ind-search" id="ind-search" type="text" placeholder="Search industries…" oninput="renderIndustryList()" onfocus="renderIndustryList()" autocomplete="off">
+          <div class="ind-list" id="ind-list"></div>
+        </div>
+        <div class="ind-chips" id="ind-chips"></div>
+      </div>
+    </div>
+
+    <!-- Financial metrics group label -->
+    <div class="group-label">Financial metrics<span>The three sections below screen on the numbers — how cheap, how profitable, how sound.</span></div>
 
     <!-- Valuation -->
     <div class="section">
@@ -358,6 +414,7 @@ a{color:var(--accent);text-decoration:none}
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
+        <p class="section-desc">How cheap a company is relative to earnings, book value, sales, and cash flow. Lower multiples (or higher yields) are cheaper.</p>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max P/E</span><span class="slider-val" id="v-pe">No limit</span></div>
           <input type="range" min="0" max="30" step="1" value="30" id="pe" oninput="syncSlider(this)">
@@ -392,6 +449,7 @@ a{color:var(--accent);text-decoration:none}
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
+        <p class="section-desc">How efficiently a company turns revenue into profit. Higher margins and returns (ROE, ROA) signal a stronger, more durable business.</p>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Min gross margin</span><span class="slider-val" id="v-gm">≥ -100%</span></div>
           <input type="range" min="-100" max="100" step="5" value="-100" id="gm" oninput="syncSlider(this)">
@@ -422,6 +480,7 @@ a{color:var(--accent);text-decoration:none}
         <span class="chevron open">▼</span>
       </div>
       <div class="section-body">
+        <p class="section-desc">Financial health and risk — how much debt a company carries, whether it can cover short-term obligations, and what it pays out in dividends.</p>
         <div class="slider-row">
           <div class="slider-meta"><span class="slider-label">Max debt/equity</span><span class="slider-val" id="v-de">No limit</span></div>
           <input type="range" min="0" max="100" step="0.5" value="100" id="de" oninput="syncSlider(this)">
@@ -592,8 +651,152 @@ function toggleSec(h) {
   h.nextElementSibling.classList.toggle('collapsed');
   h.querySelector('.chevron').classList.toggle('open');
 }
-function setSectors(on) {
-  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.toggle('active', on));
+// ── SECTOR + INDUSTRY ─────────────────────────────────────────────────────────
+// sectorIndustryMap: { "Technology": Set("Semiconductors", ...), ... }
+let sectorIndustryMap = {};
+let industrySectors = {};    // "Semiconductors" -> Set("Technology"); some span >1 sector
+let allIndustries = [];      // sorted list of all industry names
+let selectedIndustries = new Set();
+
+function getActiveSectors() {
+  return Array.from(document.querySelectorAll('.tog.active[data-sector]')).map(el => el.dataset.sector);
+}
+
+// Industries available given current sector selection (none selected = all)
+function availableIndustries() {
+  const active = getActiveSectors();
+  if (active.length === 0) return new Set(allIndustries);
+  const avail = new Set();
+  active.forEach(s => (sectorIndustryMap[s] || new Set()).forEach(i => avail.add(i)));
+  return avail;
+}
+
+function toggleSector(el) {
+  const wasActive = el.classList.contains('active');
+  el.classList.toggle('active');
+  // When a sector is turned OFF, drop any selected industry whose parent sectors
+  // are now all inactive. (Industries can belong to more than one sector, so an
+  // industry only drops once NONE of its parents remain selected.)
+  if (wasActive) {
+    const active = new Set(getActiveSectors());
+    selectedIndustries.forEach(i => {
+      const parents = industrySectors[i];
+      if (parents && ![...parents].some(s => active.has(s))) selectedIndustries.delete(i);
+    });
+  }
+  renderIndustryList();
+  renderIndustryChips();
+}
+
+function clearSectors() {
+  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.remove('active'));
+  renderIndustryList();
+  renderIndustryChips();
+}
+
+function clearIndustries() {
+  selectedIndustries.clear();
+  renderIndustryList();
+  renderIndustryChips();
+}
+
+function buildIndustryMap(companies) {
+  const map = {};
+  industrySectors = {};
+  companies.forEach(c => {
+    const s = c.sector, i = c.industry;
+    if (!s || !i) return;
+    (map[s] ??= new Set()).add(i);
+    (industrySectors[i] ??= new Set()).add(s);
+  });
+  sectorIndustryMap = map;
+  allIndustries = Object.keys(industrySectors).sort((a, b) => a.localeCompare(b));
+  renderIndustryList();
+}
+
+const SECTOR_ABBR = s => s
+  .replace('Consumer Cyclical', 'Con. Cyc.')
+  .replace('Consumer Defensive', 'Con. Def.')
+  .replace('Communication Services', 'Comm.')
+  .replace('Financial Services', 'Fin.')
+  .replace('Basic Materials', 'Materials');
+
+// Short label for an industry's sector(s): "Technology" or "Industrials +1"
+function industrySectorLabel(i) {
+  const parents = industrySectors[i];
+  if (!parents || parents.size === 0) return '';
+  const arr = [...parents];
+  return arr.length === 1 ? SECTOR_ABBR(arr[0]) : `${SECTOR_ABBR(arr[0])} +${arr.length - 1}`;
+}
+
+function renderIndustryList() {
+  const listEl = document.getElementById('ind-list');
+  if (!listEl) return;
+  const q = (document.getElementById('ind-search').value || '').trim().toLowerCase();
+  // Idle (no search text): keep the list collapsed — just the search bar shows.
+  if (!q) { listEl.innerHTML = ''; return; }
+  if (!allIndustries.length) {
+    listEl.innerHTML = '<div class="ind-empty">Loading industries…</div>';
+    positionIndustryList();
+    return;
+  }
+  const avail = availableIndustries();
+  const rows = allIndustries
+    .filter(i => i.toLowerCase().includes(q))
+    .map(i => {
+      const disabled = !avail.has(i);
+      const sel = selectedIndustries.has(i);
+      const label = industrySectorLabel(i);
+      const full = [...(industrySectors[i] || [])].join(', ');
+      const cls = ['ind-opt', sel ? 'sel' : '', disabled ? 'disabled' : ''].filter(Boolean).join(' ');
+      const onclick = disabled ? '' : ` onclick="event.stopPropagation();toggleIndustry('${i.replace(/'/g, "\\'")}')"`;
+      return `<div class="${cls}"${onclick}><div class="ind-pip"></div>${i}<span class="ind-opt-sector" title="${full}">${label}</span></div>`;
+    });
+  listEl.innerHTML = rows.length ? rows.join('') : '<div class="ind-empty">No industries match</div>';
+  positionIndustryList();
+}
+
+// Anchor the fixed-position dropdown to the search input's on-screen rect.
+function positionIndustryList() {
+  const listEl = document.getElementById('ind-list');
+  const input = document.getElementById('ind-search');
+  if (!listEl || !input || !listEl.innerHTML.trim()) return;
+  const r = input.getBoundingClientRect();
+  // Reset any prior positioning so stale top/bottom can't conflict.
+  listEl.style.top = 'auto';
+  listEl.style.bottom = 'auto';
+  listEl.style.left = r.left + 'px';
+  listEl.style.width = r.width + 'px';
+  listEl.style.maxHeight = '200px';
+  // Measure natural height (cap at 200), decide direction.
+  const h = Math.min(listEl.offsetHeight, 200);
+  const spaceBelow = window.innerHeight - r.bottom - 8;
+  if (spaceBelow >= h || spaceBelow >= r.top - 8) {
+    // Enough room below (or more room below than above): open downward.
+    listEl.style.top = (r.bottom + 4) + 'px';
+  } else {
+    // Open upward.
+    listEl.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+  }
+}
+
+function toggleIndustry(name) {
+  if (selectedIndustries.has(name)) selectedIndustries.delete(name);
+  else selectedIndustries.add(name);
+  renderIndustryList();
+  renderIndustryChips();
+  // Keep focus in the search so the floating list stays open for multi-select
+  const s = document.getElementById('ind-search');
+  if (s) s.focus();
+}
+
+function renderIndustryChips() {
+  const chipsEl = document.getElementById('ind-chips');
+  if (!chipsEl) return;
+  const sel = Array.from(selectedIndustries).sort((a, b) => a.localeCompare(b));
+  chipsEl.innerHTML = sel.map(i =>
+    `<span class="ind-chip">${i}<span onclick="toggleIndustry('${i.replace(/'/g, "\\'")}')" title="Remove">✕</span></span>`
+  ).join('');
 }
 
 function v(id) { return parseFloat(document.getElementById(id).value); }
@@ -637,7 +840,7 @@ function setStatus(text, state) {
 let sortCol = 'pe', sortDir = 1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -909,7 +1112,7 @@ async function runScreen() {
 }
 
 function buildQuery() {
-  const activeSectors = Array.from(document.querySelectorAll('.tog.active[data-sector]')).map(el => el.dataset.sector);
+  const activeSectors = getActiveSectors();
   const mcMinIdx = v('mc-min');
   const mcMaxIdx = v('mc-max');
   const volIdx = v('vol');
@@ -921,7 +1124,13 @@ function buildQuery() {
   if (mcMin > 0) params += `market_cap=gte.${Math.round(mcMin)}&`;
   if (mcMax !== null) params += `market_cap=lte.${Math.round(mcMax)}&`;
   if (volMin > 0) params += `volume=gte.${Math.round(volMin)}&`;
-  if (activeSectors.length < 11 && activeSectors.length > 0) {
+  // Industry takes precedence: if specific industries are chosen, filter on those
+  // (each maps to one sector, so this already respects the sector scope).
+  const inds = Array.from(selectedIndustries);
+  if (inds.length > 0) {
+    params += `industry=in.(${inds.map(s => `"${s}"`).join(',')})&`;
+  } else if (activeSectors.length > 0 && activeSectors.length < 11) {
+    // No specific industries: filter by selected sectors (none selected = all sectors)
     params += `sector=in.(${activeSectors.map(s => `"${s}"`).join(',')})&`;
   }
   params += `is_etf=eq.false&is_fund=eq.false&is_actively_trading=eq.true`;
@@ -998,10 +1207,9 @@ function captureFilters() {
     const el = document.getElementById(id);
     if (el) sliders[id] = el.value;
   });
-  const sectors = Array.from(document.querySelectorAll('.tog[data-sector]')).map(el => ({
-    sector: el.dataset.sector, active: el.classList.contains('active')
-  }));
-  return { sliders, sectors };
+  const sectors = getActiveSectors();              // only the selected ones
+  const industries = Array.from(selectedIndustries);
+  return { sliders, sectors, industries };
 }
 
 function applyFilters(filters) {
@@ -1012,12 +1220,21 @@ function applyFilters(filters) {
       if (el) { el.value = val; syncSlider(el); }
     });
   }
-  if (filters.sectors) {
-    filters.sectors.forEach(({ sector, active }) => {
-      const el = document.querySelector(`.tog[data-sector="${sector}"]`);
-      if (el) el.classList.toggle('active', active);
+  // Sectors: clear all, then activate saved ones. Back-compat with old
+  // {sector,active} array shape from presets saved before this change.
+  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.remove('active'));
+  if (Array.isArray(filters.sectors)) {
+    filters.sectors.forEach(s => {
+      if (typeof s === 'object') { if (s.active) { const el = document.querySelector(`.tog[data-sector="${s.sector}"]`); if (el) el.classList.add('active'); } }
+      else { const el = document.querySelector(`.tog[data-sector="${s}"]`); if (el) el.classList.add('active'); }
     });
   }
+  selectedIndustries = new Set(Array.isArray(filters.industries) ? filters.industries : []);
+  // Drop any industries not valid under restored sectors
+  const avail = availableIndustries();
+  selectedIndustries.forEach(i => { if (!avail.has(i)) selectedIndustries.delete(i); });
+  renderIndustryList();
+  renderIndustryChips();
 }
 
 async function loadPresets() {
@@ -1105,7 +1322,12 @@ function resetFilters() {
     const el = document.getElementById(id);
     if (el) { el.value = val; syncSlider(el); }
   });
-  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.add('active'));
+  document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.remove('active'));
+  selectedIndustries.clear();
+  const indSearch = document.getElementById('ind-search');
+  if (indSearch) indSearch.value = '';
+  renderIndustryList();
+  renderIndustryChips();
 }
 
 // ── SEARCH ───────────────────────────────────────────────────────────────────
@@ -1146,7 +1368,7 @@ async function selectResult(symbol) {
   if (existing) { openModal(symbol); return; }
   // Fetch full data
   try {
-    const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -1172,7 +1394,7 @@ async function runSearchEnter(query, results) {
   try {
     const symbols = results.map(c => c.symbol);
     const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
-    const SELECT = `symbol,name,sector,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -1213,6 +1435,11 @@ document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-wrap')) {
     document.getElementById('search-dropdown').style.display = 'none';
   }
+  // Close the industry results dropdown when clicking outside its box
+  if (!e.target.closest('.ind-box')) {
+    const il = document.getElementById('ind-list');
+    if (il) il.innerHTML = '';
+  }
 });
 
 // ── RECENT STOCKS ────────────────────────────────────────────────────────────
@@ -1246,12 +1473,19 @@ function renderRecents() {
 }
 
 window.addEventListener('resize', renderRecents);
+// Keep the fixed industry dropdown anchored to its input on scroll/resize
+(function() {
+  const reposition = () => positionIndustryList();
+  window.addEventListener('resize', reposition);
+  const sb = document.querySelector('.sidebar');
+  if (sb) sb.addEventListener('scroll', reposition, { passive: true });
+})();
 window.renderRecents = renderRecents;
 (async function preloadCompanies() {
   const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
   let all = [], offset = 0;
   while (true) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,exchange,market_cap,price&limit=1000&offset=${offset}`, { headers: hdrs });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=symbol,name,sector,industry,exchange,market_cap,price&limit=1000&offset=${offset}`, { headers: hdrs });
     if (!r.ok) break;
     const batch = await r.json();
     all = all.concat(batch);
@@ -1259,6 +1493,8 @@ window.renderRecents = renderRecents;
     offset += 1000;
   }
   allCompanies = all;
+  buildIndustryMap(all);
+  renderIndustryChips();
 })();
 
 loadPresets();
@@ -1927,7 +2163,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 // Expose functions used by inline HTML handlers
 window.syncSlider = syncSlider;
 window.toggleSec = toggleSec;
-window.setSectors = setSectors;
+window.toggleSector = toggleSector;
+window.clearSectors = clearSectors;
+window.clearIndustries = clearIndustries;
+window.toggleIndustry = toggleIndustry;
+window.renderIndustryList = renderIndustryList;
+window.positionIndustryList = positionIndustryList;
 window.runScreen = runScreen;
 window.sortBy = sortBy;
 window.savePreset = savePreset;
