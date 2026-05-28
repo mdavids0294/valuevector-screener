@@ -960,13 +960,18 @@ function fmtVal(val, type) {
 }
 
 // FMP's per-share cash-flow figures are sometimes wildly inflated (wrong share
-// count), producing impossible FCF yields like 39,881%. Flag a row as suspect
-// when FCF/share exceeds ~3x revenue/share — the same rule used at ingest.
+// count), producing impossible FCF yields like 418,183%. A row is suspect if
+// EITHER the FCF yield itself is implausibly large (no real company yields more
+// than ~100% of price in FCF), OR FCF/share exceeds ~3x revenue/share. Either
+// alone is enough — preferreds/notes often have null revenue, so we can't rely
+// on the revenue comparison for those.
 function fcfSuspect(c) {
+  const y = c?.live?.fcf_yield ?? c?.ratios?.fcf_yield;   // ratio, e.g. 0.08 = 8%
+  if (y != null && Math.abs(y) > 1) return true;          // > 100% FCF yield = impossible
   const fcfps = c?.ratios?.fcf_per_share;
   const revps = c?.ratios?.revenue_per_share;
-  if (fcfps == null || revps == null || revps <= 0) return false;
-  return Math.abs(fcfps) > revps * 3;
+  if (fcfps != null && revps != null && revps > 0 && Math.abs(fcfps) > revps * 3) return true;
+  return false;
 }
 
 function renderTable(data) {
