@@ -62,6 +62,9 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .section{background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
 .section-header{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
 .section-header:hover{background:var(--bg3)}
+.section-head-right{display:flex;align-items:center;gap:10px}
+.section-reset{font-family:var(--mono);font-size:9px;color:var(--text3);cursor:pointer;letter-spacing:.04em;transition:color .12s}
+.section-reset:hover{color:var(--accent)}
 .section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);font-weight:500}
 .section-desc{font-family:var(--sans),'DM Sans',sans-serif;font-size:10.5px;line-height:1.45;color:var(--text2);margin:0 0 9px;padding-bottom:9px;border-bottom:0.5px solid var(--border)}
 .group-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);font-weight:500;margin:10px 2px 4px;padding-top:10px;border-top:0.5px solid var(--border)}
@@ -351,7 +354,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Market cap</span>
-        <span class="chevron open">▶</span>
+        <span class="section-head-right"><span class="section-reset" onclick="resetSection('market-cap', event)">reset</span><span class="chevron open">▶</span></span>
       </div>
       <div class="section-body">
         <p class="section-desc">Filter by company size and how actively the stock trades. Small/midcaps sit toward the lower end of the cap range.</p>
@@ -374,7 +377,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Sector &amp; industry</span>
-        <span class="chevron open">▶</span>
+        <span class="section-head-right"><span class="section-reset" onclick="resetSection('sector-industry', event)">reset</span><span class="chevron open">▶</span></span>
       </div>
       <div class="section-body">
         <p class="section-desc">Click sectors to focus on them — leave all unselected to include every sector. Then optionally narrow to specific industries within your selected sectors.</p>
@@ -413,7 +416,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Valuation</span>
-        <span class="chevron open">▶</span>
+        <span class="section-head-right"><span class="section-reset" onclick="resetSection('valuation', event)">reset</span><span class="chevron open">▶</span></span>
       </div>
       <div class="section-body">
         <p class="section-desc">How cheap a company is relative to earnings, book value, sales, and cash flow. Lower multiples (or higher yields) are cheaper.</p>
@@ -448,7 +451,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Profitability</span>
-        <span class="chevron open">▶</span>
+        <span class="section-head-right"><span class="section-reset" onclick="resetSection('profitability', event)">reset</span><span class="chevron open">▶</span></span>
       </div>
       <div class="section-body">
         <p class="section-desc">How efficiently a company turns revenue into profit. Higher margins and returns (ROE, ROA) signal a stronger, more durable business.</p>
@@ -479,7 +482,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Balance sheet</span>
-        <span class="chevron open">▶</span>
+        <span class="section-head-right"><span class="section-reset" onclick="resetSection('balance', event)">reset</span><span class="chevron open">▶</span></span>
       </div>
       <div class="section-body">
         <p class="section-desc">Financial health and risk — how much debt a company carries, whether it can cover short-term obligations, and what it pays out in dividends.</p>
@@ -1350,7 +1353,32 @@ function resetFilters() {
   renderIndustryChips();
 }
 
-// ── SEARCH ───────────────────────────────────────────────────────────────────
+// Per-section defaults, so each section's reset only clears its own filters.
+const SECTION_DEFAULTS = {
+  'market-cap':   { 'mc-min': 0, 'mc-max': 29, 'vol': 0 },
+  'valuation':    { 'pe': 30, 'pb': 30, 'ps': 30, 'pfcf': 30, 'fcfy': 0, 'ev': 30 },
+  'profitability':{ 'gm': -100, 'nm': -100, 'em': -100, 'roe': -100, 'roa': -50 },
+  'balance':      { 'de': 100, 'cr': 0, 'dy': 0 }
+};
+
+function resetSection(name, ev) {
+  if (ev) ev.stopPropagation();   // don't toggle the section's collapse
+  if (name === 'sector-industry') {
+    document.querySelectorAll('.tog[data-sector]').forEach(el => el.classList.remove('active'));
+    selectedIndustries.clear();
+    const indSearch = document.getElementById('ind-search');
+    if (indSearch) indSearch.value = '';
+    renderIndustryList();
+    renderIndustryChips();
+    return;
+  }
+  const defaults = SECTION_DEFAULTS[name];
+  if (!defaults) return;
+  Object.entries(defaults).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; syncSlider(el); }
+  });
+}
 
 let allCompanies = [];
 
@@ -2199,6 +2227,7 @@ window.deletePreset = deletePreset;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.resetFilters = resetFilters;
+window.resetSection = resetSection;
 
 
 }); // end DOMContentLoaded
