@@ -67,7 +67,7 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .group-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);font-weight:500;margin:10px 2px 4px;padding-top:10px;border-top:0.5px solid var(--border)}
 .group-label span{display:block;font-family:var(--sans),'DM Sans',sans-serif;font-size:10px;line-height:1.4;letter-spacing:0;text-transform:none;color:var(--text3);margin-top:4px;font-weight:400}
 .chevron{font-size:9px;color:var(--text3);transition:transform .2s;display:inline-block}
-.chevron.open{transform:rotate(180deg)}
+.chevron.open{transform:rotate(90deg)}
 .section-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-top:0.5px solid var(--border)}
 .section-body.collapsed{display:none}
 
@@ -327,7 +327,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Presets</span>
-        <span class="chevron open">▼</span>
+        <span class="chevron open">▶</span>
       </div>
       <div class="section-body">
         <p class="section-desc">Save a set of filters as a named screen, then reload it any time. Reset returns every filter to its default.</p>
@@ -349,7 +349,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Market cap</span>
-        <span class="chevron open">▼</span>
+        <span class="chevron open">▶</span>
       </div>
       <div class="section-body">
         <p class="section-desc">Filter by company size and how actively the stock trades. Small/midcaps sit toward the lower end of the cap range.</p>
@@ -372,7 +372,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Sector &amp; industry</span>
-        <span class="chevron open">▼</span>
+        <span class="chevron open">▶</span>
       </div>
       <div class="section-body">
         <p class="section-desc">Click sectors to focus on them — leave all unselected to include every sector. Then optionally narrow to specific industries within your selected sectors.</p>
@@ -411,7 +411,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Valuation</span>
-        <span class="chevron open">▼</span>
+        <span class="chevron open">▶</span>
       </div>
       <div class="section-body">
         <p class="section-desc">How cheap a company is relative to earnings, book value, sales, and cash flow. Lower multiples (or higher yields) are cheaper.</p>
@@ -446,7 +446,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Profitability</span>
-        <span class="chevron open">▼</span>
+        <span class="chevron open">▶</span>
       </div>
       <div class="section-body">
         <p class="section-desc">How efficiently a company turns revenue into profit. Higher margins and returns (ROE, ROA) signal a stronger, more durable business.</p>
@@ -477,7 +477,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
         <span class="section-title">Balance sheet</span>
-        <span class="chevron open">▼</span>
+        <span class="chevron open">▶</span>
       </div>
       <div class="section-body">
         <p class="section-desc">Financial health and risk — how much debt a company carries, whether it can cover short-term obligations, and what it pays out in dividends.</p>
@@ -642,9 +642,9 @@ function valRaw(idx) {
 function volLabel(idx) {
   const val = VOL_SCALE[idx];
   if (val === 0) return 'No min';
-  if (val >= 1e9) return '$' + (val/1e9).toFixed(0) + 'B';
-  if (val >= 1e6) return '$' + (val/1e6).toFixed(0) + 'M';
-  return '$' + Math.round(val/1e3) + 'K';
+  if (val >= 1e9) return (val/1e9).toFixed(0) + 'B';
+  if (val >= 1e6) return (val/1e6).toFixed(0) + 'M';
+  return Math.round(val/1e3) + 'K';
 }
 
 function toggleSec(h) {
@@ -1123,7 +1123,7 @@ function buildQuery() {
   let params = '';
   if (mcMin > 0) params += `market_cap=gte.${Math.round(mcMin)}&`;
   if (mcMax !== null) params += `market_cap=lte.${Math.round(mcMax)}&`;
-  if (volMin > 0) params += `volume=gte.${Math.round(volMin)}&`;
+  if (volMin > 0) params += `avg_volume=gte.${Math.round(volMin)}&`;
   // Industry takes precedence: if specific industries are chosen, filter on those.
   // Values must be URL-encoded — names like "Aerospace & Defense" contain '&'
   // and spaces that otherwise break the query string.
