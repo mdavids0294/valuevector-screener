@@ -162,6 +162,8 @@ td.r{text-align:right}
 .co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .co-ticker{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:1px}
 .num{font-family:var(--mono);font-size:11px}
+.num.suspect{color:var(--red)}
+.num.suspect::after{content:'⚠';font-size:8px;margin-left:3px;opacity:.7;vertical-align:super}
 .chg-up{color:#4ade80;font-family:var(--mono);font-size:10px}
 .chg-dn{color:var(--red);font-family:var(--mono);font-size:10px}
 .chg-flat{color:var(--text3);font-family:var(--mono);font-size:10px}
@@ -957,6 +959,16 @@ function fmtVal(val, type) {
   return val;
 }
 
+// FMP's per-share cash-flow figures are sometimes wildly inflated (wrong share
+// count), producing impossible FCF yields like 39,881%. Flag a row as suspect
+// when FCF/share exceeds ~3x revenue/share — the same rule used at ingest.
+function fcfSuspect(c) {
+  const fcfps = c?.ratios?.fcf_per_share;
+  const revps = c?.ratios?.revenue_per_share;
+  if (fcfps == null || revps == null || revps <= 0) return false;
+  return Math.abs(fcfps) > revps * 3;
+}
+
 function renderTable(data) {
   const colMap = {
     name:      c => c.name || '',
@@ -1026,6 +1038,7 @@ function renderTable(data) {
     const gm   = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
     const nm   = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
     const fcfyV = lp?.fcf_yield ?? r?.fcf_yield;
+    const fcfSus = fcfSuspect(c);
     const fcfy = fcfyV > 0 ? (fcfyV*100).toFixed(1)+'%' : '—';
     const evV  = lp?.ev_ebitda ?? r?.ev_ebitda;
     const ev   = evV > 0 ? evV.toFixed(1)+'×' : '—';
@@ -1041,7 +1054,7 @@ function renderTable(data) {
       <td class="r"><span class="num">${pb}</span></td>
       <td class="r"><span class="num">${gm}</span></td>
       <td class="r"><span class="num">${nm}</span></td>
-      <td class="r"><span class="num">${fcfy}</span></td>
+      <td class="r"><span class="num${fcfSus ? ' suspect' : ''}">${fcfy}</span></td>
       <td class="r"><span class="num">${ev}</span></td>
       <td class="r"><span class="num">${evr}</span></td>
       <td class="r"><span class="num">${de}</span></td>
@@ -1067,6 +1080,7 @@ function updateStats(data) {
   const gms = data.filter(c => c.ratios?.gross_margin > 0).map(c => c.ratios.gross_margin*100);
   document.getElementById('s-gm').textContent = gms.length ? (gms.reduce((a,b)=>a+b,0)/gms.length).toFixed(1)+'%' : '—';
   const fcfys = data.filter(c => {
+    if (fcfSuspect(c)) return false;
     const v = c.live?.fcf_yield ?? c.ratios?.fcf_yield;
     return v > 0;
   }).map(c => (c.live?.fcf_yield ?? c.ratios.fcf_yield)*100);
@@ -1513,10 +1527,10 @@ const MODAL_SECTIONS = [
       { label: 'P/E',        get: c => c.live?.pe       ?? c.ratios?.pe_ratio,    fmt: 'x',  guard: v => v > 0 && v < 500 },
       { label: 'P/B',        get: c => c.live?.pb       ?? c.ratios?.pb_ratio,    fmt: 'x',  guard: v => v > 0 },
       { label: 'P/S',        get: c => c.live?.ps       ?? c.ratios?.ps_ratio,    fmt: 'x',  guard: v => v > 0 },
-      { label: 'P/FCF',      get: c => c.live?.pfcf     ?? c.ratios?.pfcf_ratio,  fmt: 'x',  guard: v => v > 0 },
+      { label: 'P/FCF',      get: c => c.live?.pfcf     ?? c.ratios?.pfcf_ratio,  fmt: 'x',  guard: v => v > 0, suspect: fcfSuspect },
       { label: 'EV/EBITDA',  get: c => c.live?.ev_ebitda ?? c.ratios?.ev_ebitda,  fmt: 'x',  guard: v => v > 0 },
       { label: 'EV/Rev',     get: c => c.live?.ev_revenue,                         fmt: 'x',  guard: v => v > 0 },
-      { label: 'FCF yield',  get: c => c.live?.fcf_yield ?? c.ratios?.fcf_yield,  fmt: '%',  color: 'pos-good' },
+      { label: 'FCF yield',  get: c => c.live?.fcf_yield ?? c.ratios?.fcf_yield,  fmt: '%',  color: 'pos-good', suspect: fcfSuspect },
       { label: 'Earnings yield', get: c => c.live?.earnings_yield ?? c.ratios?.earnings_yield, fmt: '%', color: 'pos-good' },
     ]
   },
@@ -1599,11 +1613,13 @@ function renderModalSection(section, c) {
     const val = f.get(c);
     const passes = f.guard ? f.guard(val) : true;
     const formatted = (val !== null && val !== undefined && !isNaN(val) && passes) ? fmtModalVal(val, f.fmt) : null;
-    const cls = formatted ? colorClass(val, f.color) : '';
+    const suspect = f.suspect ? f.suspect(c) : false;
+    const cls = formatted ? (suspect ? 'neg' : colorClass(val, f.color)) : '';
     const display = formatted ?? '—';
+    const warn = (formatted && suspect) ? ' ⚠' : '';
     return `<div class="modal-ratio-row">
       <span class="modal-ratio-label">${f.label}</span>
-      <span class="modal-ratio-val ${cls}">${display}</span>
+      <span class="modal-ratio-val ${cls}" ${suspect ? 'title="Implausible vs revenue — likely bad source data"' : ''}>${display}${warn}</span>
     </div>`;
   }).join('');
   return `<div class="${section.full ? 'modal-section-full' : ''}">
