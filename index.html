@@ -2346,6 +2346,17 @@ bootAuth();
 // To add a new metric, just add an entry to the relevant section's fields array.
 // fmt options: 'x' (multiple), '%' (ratio→percent), '$' (dollar), 'mc' (market cap), 'raw' (as-is)
 // color: 'pos-good' (green if positive), 'neg-good' (green if negative), null (no color)
+//        or a threshold object: { lowGood:{good,bad} } / { highGood:{good,bad} }
+
+// Tunable red/green thresholds for balance-sheet ratios. Green at/under "good"
+// (or at/over for highGood); red at/over "bad" (or at/under for highGood);
+// neutral in between. Edit these numbers to retune.
+const COLOR_THRESHOLDS = {
+  debtToEquity:     { lowGood:  { good: 0.5, bad: 2.0 } },   // lower better
+  debtToAssets:     { lowGood:  { good: 0.30, bad: 0.60 } }, // ratio (0.30 = 30%)
+  currentRatio:     { highGood: { good: 1.5, bad: 1.0 } },   // higher better; <1 = risk
+  interestCoverage: { highGood: { good: 3.0, bad: 1.5 } },   // higher better
+};
 
 const MODAL_SECTIONS = [
   {
@@ -2377,12 +2388,12 @@ const MODAL_SECTIONS = [
     full: true,
     horizontal: true,
     fields: [
-      { label: 'Debt / equity',  get: c => c.ratios?.debt_to_equity,           fmt: 'x',  color: 'neg-good' },
-      { label: 'Current ratio',  get: c => c.ratios?.current_ratio,            fmt: 'x',  color: 'pos-good' },
+      { label: 'Debt / equity',  get: c => c.ratios?.debt_to_equity,           fmt: 'x',  color: COLOR_THRESHOLDS.debtToEquity },
+      { label: 'Current ratio',  get: c => c.ratios?.current_ratio,            fmt: 'x',  color: COLOR_THRESHOLDS.currentRatio },
       { label: 'Cash / share',   get: c => c.ratios?.cash_per_share,           fmt: '$' },
       { label: 'Book / share',   get: c => c.ratios?.book_value_per_share,     fmt: '$' },
-      { label: 'Interest coverage', get: c => c.ratios?.interest_coverage,     fmt: 'x',  color: 'pos-good' },
-      { label: 'Debt / assets',  get: c => c.ratios?.debt_to_assets,           fmt: '%',  color: 'neg-good' },
+      { label: 'Interest coverage', get: c => c.ratios?.interest_coverage,     fmt: 'x',  color: COLOR_THRESHOLDS.interestCoverage },
+      { label: 'Debt / assets',  get: c => c.ratios?.debt_to_assets,           fmt: '%',  color: COLOR_THRESHOLDS.debtToAssets },
     ]
   },
   {
@@ -2426,10 +2437,29 @@ function fmtModalVal(val, fmt) {
   return String(val);
 }
 
+// Color modes:
+//  'pos-good'  → green if value > 0, red if < 0 (sign-based; for yields/margins)
+//  'neg-good'  → green if value < 0, red if > 0 (sign-based; rarely right for ratios)
+//  { lowGood: {good, bad} } → "lower is better": green ≤ good, red ≥ bad, neutral between
+//  { highGood:{good, bad} } → "higher is better": green ≥ good, red ≤ bad, neutral between
 function colorClass(val, colorMode) {
-  if (!colorMode || val === null || val === undefined) return '';
+  if (!colorMode || val === null || val === undefined || isNaN(val)) return '';
   if (colorMode === 'pos-good') return val > 0 ? 'pos' : val < 0 ? 'neg' : '';
   if (colorMode === 'neg-good') return val < 0 ? 'pos' : val > 0 ? 'neg' : '';
+  if (typeof colorMode === 'object') {
+    if (colorMode.lowGood) {
+      const { good, bad } = colorMode.lowGood;
+      if (val <= good) return 'pos';
+      if (val >= bad)  return 'neg';
+      return '';
+    }
+    if (colorMode.highGood) {
+      const { good, bad } = colorMode.highGood;
+      if (val >= good) return 'pos';
+      if (val <= bad)  return 'neg';
+      return '';
+    }
+  }
   return '';
 }
 
