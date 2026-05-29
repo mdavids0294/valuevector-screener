@@ -78,6 +78,24 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .profile-btn-text{font-family:var(--sans);font-size:13px;color:var(--text);font-weight:500;flex:1}
 .profile-btn-arrow{font-family:var(--mono);font-size:12px;color:var(--text3);transition:transform .15s}
 .profile-btn:hover .profile-btn-arrow{transform:translateX(3px);color:var(--text2)}
+/* Watchlist */
+.wl-star{background:none;border:none;cursor:pointer;padding:0 2px;font-size:14px;line-height:1;color:var(--text3);transition:color .12s,transform .12s;font-family:var(--sans)}
+.wl-star:hover{color:var(--accent2);transform:scale(1.15)}
+.wl-star.on{color:var(--accent)}
+td.wl-cell{width:22px;text-align:center;padding-left:4px;padding-right:0}
+th.wl-cell{width:22px}
+.modal-star{background:none;border:0.5px solid var(--border2);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;color:var(--text3);padding:6px 9px;margin-right:10px;transition:all .15s;font-family:var(--sans)}
+.modal-star:hover{color:var(--accent2);border-color:var(--accent2)}
+.modal-star.on{color:var(--accent);border-color:rgba(200,245,154,0.4)}
+/* Watchlist mode cues */
+.profile-btn.wl-active{background:rgba(200,245,154,0.10);border-color:rgba(200,245,154,0.45)}
+.wl-banner{display:none;align-items:center;justify-content:space-between;gap:12px;margin:8px 12px 0;padding:8px 12px;background:rgba(200,245,154,0.07);border:0.5px solid rgba(200,245,154,0.30);border-radius:7px}
+.wl-banner.show{display:flex}
+.wl-banner-title{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.wl-banner-title .wl-star-ico{font-size:17px;line-height:1;position:relative;top:-1.5px}
+.wl-banner-count{color:var(--text2);text-transform:none;letter-spacing:0}
+.wl-banner-back{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--text2);padding:3px 6px;border-radius:5px;transition:color .12s,background .12s}
+.wl-banner-back:hover{color:var(--text);background:rgba(255,255,255,0.05)}
 .pf-section{display:flex;flex-direction:column;gap:8px}
 .pf-section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-weight:500}
 .pf-identity{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px}
@@ -426,6 +444,13 @@ a{color:var(--accent);text-decoration:none}
       <span class="profile-btn-text">View profile</span>
     </button>
 
+    <!-- Watchlist -->
+    <button class="profile-btn" id="wl-sidebar-btn" onclick="openWatchlist()">
+      <span class="profile-btn-avatar" style="background:transparent;border:0.5px solid var(--accent);color:var(--accent)"><span style="position:relative;top:-0.5px;line-height:1">★</span></span>
+      <span class="profile-btn-text">Watchlist</span>
+      <span class="profile-btn-text" id="wl-count" style="flex:0;color:var(--text3);font-family:var(--mono);font-size:11px"></span>
+    </button>
+
     <!-- Presets -->
     <div class="section">
       <div class="section-header" onclick="toggleSec(this)">
@@ -620,6 +645,11 @@ a{color:var(--accent);text-decoration:none}
       <div class="stat"><div class="stat-label">Avg gross margin</div><div class="stat-val" id="s-gm">—</div></div>
       <div class="stat"><div class="stat-label">Avg FCF yield</div><div class="stat-val" id="s-fcfy">—</div></div>
       <div class="stat"><div class="stat-label">Last run</div><div class="stat-val amber" id="s-time" style="font-size:12px">—</div></div>
+    </div>
+
+    <div class="wl-banner" id="wl-banner">
+      <span class="wl-banner-title"><span class="wl-star-ico">★</span>Viewing your watchlist<span class="wl-banner-count" id="wl-banner-count"></span></span>
+      <button class="wl-banner-back" onclick="exitWatchlist()">← Back to screener</button>
     </div>
 
     <div class="table-wrap" id="table-wrap">
@@ -969,6 +999,12 @@ function setStatus(text, state) {
 }
 
 let sortCol = 'pe', sortDir = 1, lastResults = [];
+// Watchlist: in-memory Set of saved symbols (synchronous checks for row stars),
+// plus a flag so renderTable knows whether to draw the star column. wlViewing is
+// true while the dedicated watchlist view is on screen (so the star column shows
+// even on a normal-width screen, and "remove" re-renders the view).
+let watchlist = new Set();
+let wlViewing = false;
 
 async function supabaseQuery(params) {
   const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
@@ -1133,6 +1169,7 @@ function renderTable(data) {
   const liveTag = hasLive ? ' <span style="font-size:8px;color:var(--accent2);opacity:0.7">live</span>' : '';
 
   const headers = [
+    {key:'_wl',    label:'',            wl:true},
     {key:'name',   label:'Company'},
     {key:'sector', label:'Sector'},
     {key:'price',  label:'Price',        r:true, live:true},
@@ -1148,6 +1185,7 @@ function renderTable(data) {
   ];
 
   const thead = headers.map(h => {
+    if (h.wl) return '<th class="wl-cell"></th>';
     const arr = sortCol === h.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
     const tag = (h.live && hasLive) ? liveTag : '';
     return `<th class="${sortCol===h.key?'sorted':''} ${h.r?'r':''}" onclick="sortBy('${h.key}')">${h.label}${tag}${arr}</th>`;
@@ -1180,6 +1218,7 @@ function renderTable(data) {
     const evr  = evrV > 0 ? evrV.toFixed(1)+'×' : '—';
     const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
     return `<tr onclick="openModal('${c.symbol}')">
+      <td class="wl-cell"><button class="wl-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button></td>
       <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
       <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
       <td class="r">${priceCell}</td>
@@ -1223,6 +1262,8 @@ function updateStats(data) {
 }
 
 async function runScreen() {
+  wlViewing = false;
+  setWatchlistMode(false);
   const btn = document.getElementById('run-btn');
   btn.textContent = 'Running...';
   btn.disabled = true;
@@ -1339,6 +1380,177 @@ async function refreshPrices() {
 
 // Auto-refresh prices every 5 minutes during market hours
 setInterval(refreshPrices, 5 * 60 * 1000);
+
+// ── WATCHLIST ────────────────────────────────────────────────────────────────
+// Per-user saved symbols. Same architecture as presets: a Supabase table with
+// RLS keyed on auth.uid() = user_id, accessed via REST using the user's access
+// token (presetHeaders already builds those headers). The dedicated watchlist
+// VIEW reuses renderTable() pointed at the saved symbols, with live prices
+// applied through the existing ≤200 path.
+
+const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+
+function updateWlCount() {
+  const el = document.getElementById('wl-count');
+  if (el) el.textContent = watchlist.size ? watchlist.size : '';
+}
+
+// Toggle the visual cues that signal the user is in watchlist mode:
+// the banner above the table + the highlighted sidebar button.
+function setWatchlistMode(on) {
+  const banner = document.getElementById('wl-banner');
+  const btn = document.getElementById('wl-sidebar-btn');
+  const cnt = document.getElementById('wl-banner-count');
+  if (banner) banner.classList.toggle('show', on);
+  if (btn) btn.classList.toggle('wl-active', on);
+  if (on && cnt) cnt.textContent = ' · ' + watchlist.size + ' stock' + (watchlist.size !== 1 ? 's' : '');
+}
+
+// Leave the watchlist view and return to the last screen results.
+function exitWatchlist() {
+  wlViewing = false;
+  setWatchlistMode(false);
+  runScreen();
+}
+
+function isWatched(symbol) { return watchlist.has(symbol); }
+
+// Load the user's saved symbols into the in-memory Set on boot / login.
+async function loadWatchlist() {
+  const uid = currentUserId();
+  if (!uid) { watchlist = new Set(); updateWlCount(); return; }
+  // Localhost preview: seed a couple so the feature is visible without a DB.
+  if (uid === 'dev-local') {
+    watchlist = new Set(['AAPL', 'MSFT']);
+    updateWlCount();
+    return;
+  }
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/watchlist?select=symbol&order=created_at.desc`, { headers: presetHeaders() });
+    if (!res.ok) throw new Error();
+    const rows = await res.json();
+    watchlist = new Set(Array.isArray(rows) ? rows.map(r => r.symbol) : []);
+  } catch (e) {
+    watchlist = new Set();
+  }
+  updateWlCount();
+}
+
+// Toggle a symbol. Optimistic: flip the Set + UI first, then persist; on failure
+// revert. Re-renders the open table/modal so the star reflects the new state.
+async function toggleWatch(symbol, ev) {
+  if (ev) ev.stopPropagation();      // don't open the modal when starring a row
+  const uid = currentUserId();
+  if (!uid) { showAuth(); return; }
+  const wasOn = watchlist.has(symbol);
+  // Optimistic flip
+  if (wasOn) watchlist.delete(symbol); else watchlist.add(symbol);
+  updateWlCount();
+  refreshStarUI(symbol);
+
+  // Localhost: no network, just keep the in-memory change.
+  if (uid === 'dev-local') { if (wlViewing) renderWatchlistRows(); return; }
+
+  try {
+    if (wasOn) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/watchlist?user_id=eq.${uid}&symbol=eq.${encodeURIComponent(symbol)}`, {
+        method: 'DELETE', headers: presetHeaders(),
+      });
+      if (!res.ok) throw new Error();
+    } else {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/watchlist`, {
+        method: 'POST',
+        headers: presetHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+        body: JSON.stringify({ user_id: uid, user_email: currentUserEmail(), symbol }),
+      });
+      if (!res.ok) throw new Error();
+    }
+  } catch (e) {
+    // Revert on failure
+    if (wasOn) watchlist.add(symbol); else watchlist.delete(symbol);
+    updateWlCount();
+    refreshStarUI(symbol);
+    setStatus('watchlist save failed — try again', 'err');
+    return;
+  }
+  if (wlViewing) renderWatchlistRows();
+}
+
+// Update any visible star (table row + modal) for one symbol without a full
+// re-render — keeps toggling snappy.
+function refreshStarUI(symbol) {
+  const on = watchlist.has(symbol);
+  document.querySelectorAll(`.wl-star[data-sym="${symbol}"]`).forEach(b => {
+    b.classList.toggle('on', on);
+    b.textContent = on ? '★' : '☆';
+    b.title = on ? 'Remove from watchlist' : 'Add to watchlist';
+  });
+  const ms = document.querySelector(`.modal-star[data-sym="${symbol}"]`);
+  if (ms) { ms.classList.toggle('on', on); ms.textContent = on ? '★' : '☆'; }
+}
+
+// Open the dedicated watchlist view: reuse the main results table, filtered to
+// saved symbols, full width, with live prices applied (watchlist is small).
+async function openWatchlist() {
+  const uid = currentUserId();
+  if (!uid) { showAuth(); return; }
+  wlViewing = true;
+  setWatchlistMode(true);
+  closeModal();
+  const wrap = document.getElementById('table-wrap');
+
+  if (watchlist.size === 0) {
+    setStatus('watchlist · empty', 'live');
+    wrap.innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">Your watchlist is empty</div><p>Tap the ☆ on any stock — in the table or its profile — to save it here.</p></div>';
+    lastResults = [];
+    return;
+  }
+
+  setStatus('loading watchlist...', '');
+  wrap.innerHTML = '<div class="state"><div class="spinner"></div><p>Loading watchlist...</p></div>';
+
+  try {
+    const syms = Array.from(watchlist);
+    const inList = '(' + syms.map(s => '"' + s + '"').join(',') + ')';
+    const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${WL_SELECT}&symbol=in.${inList}`, { headers: hdrs });
+    if (!r.ok) throw new Error('Could not load watchlist');
+    const full = await r.json();
+    // Preserve save order (most recent first, as loaded into the Set).
+    const ordered = syms.map(s => full.find(c => c.symbol === s)).filter(Boolean);
+
+    lastResults = ordered;
+    renderWatchlistRows();              // paint immediately from cached data
+    updateStats(ordered);
+
+    if (ordered.length && ordered.length <= 200) {
+      setStatus('watchlist · fetching live prices...', '');
+      await enrichWithLivePrices(ordered);
+      renderWatchlistRows();
+      updateStats(ordered);
+    }
+    setStatus(`watchlist · ${ordered.length} stock${ordered.length !== 1 ? 's' : ''}`, 'live');
+  } catch (e) {
+    setStatus('watchlist error: ' + e.message, 'err');
+    wrap.innerHTML = `<div class="state"><p style="color:var(--red)">${e.message}</p></div>`;
+  }
+}
+
+// Render the current watchlist results. Thin wrapper so removals re-render and
+// the empty state shows once the last stock is removed.
+function renderWatchlistRows() {
+  if (!wlViewing) return;
+  lastResults = lastResults.filter(c => watchlist.has(c.symbol));
+  setWatchlistMode(true);   // refresh the banner count after add/remove
+  if (lastResults.length === 0) {
+    document.getElementById('table-wrap').innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">Your watchlist is empty</div><p>Tap the ☆ on any stock to save it here.</p></div>';
+    updateStats([]);
+    updateWlCount();
+    return;
+  }
+  renderTable(lastResults);
+  updateStats(lastResults);
+}
 
 // ── PRESETS ──────────────────────────────────────────────────────────────────
 
@@ -1880,6 +2092,8 @@ async function selectResult(symbol) {
     if (!r.ok) throw new Error();
     const [full] = await r.json();
     if (full) {
+      wlViewing = false;
+      setWatchlistMode(false);
       lastResults = lastResults.filter(r => r.symbol !== symbol);
       lastResults = [full, ...lastResults];
     }
@@ -1895,6 +2109,8 @@ function clearSearch() {
 }
 
 async function runSearchEnter(query, results) {
+  wlViewing = false;
+  setWatchlistMode(false);
   document.getElementById('search-dropdown').style.display = 'none';
   setStatus('searching...', '');
   try {
@@ -2019,6 +2235,7 @@ async function bootAuth() {
         hideAuth();
         initAccount();
         loadPresets();
+        loadWatchlist();
       } else {
         showAuth();
       }
@@ -2030,6 +2247,7 @@ async function bootAuth() {
   if (u) {
     initAccount();
     loadPresets();
+    loadWatchlist();
   } else {
     authSetMode('signin');
     showAuth();
@@ -2220,6 +2438,7 @@ function openModal(symbol) {
             <span class="modal-price-val">${priceFmt}</span>
             ${chgFmt ? '<span class="modal-price-chg modal-ratio-val ' + chgCls + '">' + chgFmt + '</span>' : ''}
           </div>
+          <button class="modal-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
       </div>
@@ -2729,6 +2948,9 @@ window.savePreset = savePreset;
 window.applyPreset = applyPreset;
 window.deletePreset = deletePreset;
 window.openModal = openModal;
+window.openWatchlist = openWatchlist;
+window.exitWatchlist = exitWatchlist;
+window.toggleWatch = toggleWatch;
 window.closeModal = closeModal;
 window.resetFilters = resetFilters;
 window.resetSection = resetSection;
