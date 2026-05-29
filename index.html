@@ -1545,15 +1545,18 @@ async function authForgot() {
   if (!sb) return;
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { authError('Enter your email above first, then tap forgot password.'); return; }
+  const captchaToken = _turnstileToken || undefined;
+  if (!captchaToken) { authError('Just a moment — verifying you\u2019re human. Try again in a second.'); return; }
   authBusy(true); authClearMessages();
   try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin, captchaToken });
     if (error) { authError(error.message); return; }
     authNote('Password reset link sent. Check your email.');
   } catch(e) {
     authError('Could not send reset email. Try again.');
   } finally {
     authBusy(false);
+    resetTurnstile();  // single-use token; refresh for the next attempt
   }
 }
 
