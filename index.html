@@ -43,6 +43,60 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .dot.live{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
 .dot.err{background:var(--red)}
 .market-status{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);padding:5px 10px;border:0.5px solid var(--border);border-radius:5px}
+.account-wrap{position:relative}
+.session-overlay{position:fixed;inset:0;background:rgba(10,11,9,0.92);z-index:1000;display:none;align-items:center;justify-content:center}
+.session-overlay.show{display:flex}
+.auth-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:12px;padding:32px 32px 26px;max-width:340px;width:90%;text-align:center}
+.auth-logo{display:flex;justify-content:center;margin-bottom:16px}
+.auth-logo-lockup .logo-wordmark{align-items:flex-start}
+.auth-logo-lockup .logo-name,.auth-logo-lockup .logo-tag{text-align:left}
+.auth-title{font-family:var(--serif);font-size:22px;color:var(--text);margin-bottom:6px}
+.auth-sub{font-family:var(--sans);font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:20px}
+.auth-fields{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.auth-input{width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:0 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;transition:border-color .12s}
+.auth-input:focus{border-color:var(--accent)}
+.auth-input::placeholder{color:var(--text3)}
+.auth-error{font-family:var(--mono);font-size:10.5px;color:var(--red);min-height:14px;margin-bottom:8px;line-height:1.4}
+.auth-note{font-family:var(--mono);font-size:10.5px;color:var(--accent);min-height:0;line-height:1.4}
+.auth-note:not(:empty){margin-bottom:8px}
+.auth-submit{width:100%;justify-content:center;margin-bottom:14px}
+.auth-links{display:flex;flex-direction:column;gap:10px;margin-top:2px}
+.auth-link{font-family:var(--mono);font-size:11px;color:var(--text3);cursor:pointer;transition:color .12s}
+.auth-link:hover{color:var(--accent)}
+.auth-link-primary{font-size:12px;color:var(--accent2);font-weight:500}
+.auth-link-primary:hover{color:var(--accent)}
+.auth-card.busy .auth-submit{opacity:.6;pointer-events:none}
+.session-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:12px;padding:32px 36px;max-width:340px;text-align:center}
+.session-title{font-family:var(--serif);font-size:20px;color:var(--text);margin-bottom:10px}
+.session-msg{font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:20px}
+.session-btn{display:inline-block;text-decoration:none}
+.profile-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;margin-bottom:5px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;cursor:pointer;transition:all .15s;text-align:left}
+.profile-btn:hover{background:var(--bg3);border-color:var(--border2)}
+.profile-btn-avatar{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#0d1a08;font-family:var(--sans);font-size:12px;font-weight:500;flex-shrink:0;text-transform:uppercase}
+.profile-btn-text{font-family:var(--sans);font-size:13px;color:var(--text);font-weight:500;flex:1}
+.profile-btn-arrow{font-family:var(--mono);font-size:12px;color:var(--text3);transition:transform .15s}
+.profile-btn:hover .profile-btn-arrow{transform:translateX(3px);color:var(--text2)}
+.pf-section{display:flex;flex-direction:column;gap:8px}
+.pf-section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-weight:500}
+.pf-identity{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px}
+.pf-identity-avatar{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#0d1a08;font-family:var(--sans);font-size:18px;font-weight:500;flex-shrink:0;text-transform:uppercase}
+.pf-identity-name{font-family:var(--sans);font-size:14px;color:var(--text);font-weight:500}
+.pf-identity-email{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:2px}
+.pf-row{display:flex;gap:8px;flex-wrap:wrap}
+.pf-btn{flex:1;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:transparent;border:0.5px solid var(--border2);border-radius:6px;font-family:var(--sans);font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;text-decoration:none}
+.pf-btn:hover{background:var(--bg3);color:var(--text)}
+.pf-btn .pf-btn-ext{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.pf-btn-danger{color:var(--red);border-color:rgba(240,96,96,0.3)}
+.pf-btn-danger:hover{background:rgba(240,96,96,0.08);color:var(--red)}
+.pf-presets{display:flex;flex-direction:column;gap:6px}
+.pf-preset{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border-radius:6px}
+.pf-preset-name{flex:1;font-family:var(--sans);font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-preset-input{flex:1;background:var(--bg2);border:0.5px solid var(--accent);border-radius:4px;padding:4px 8px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none}
+.pf-preset-date{font-family:var(--mono);font-size:10px;color:var(--text3);flex-shrink:0}
+.pf-preset-act{background:none;border:none;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:11px;padding:2px 4px;transition:color .12s}
+.pf-preset-act:hover{color:var(--text)}
+.pf-preset-act.del:hover{color:var(--red)}
+.pf-empty{font-family:var(--mono);font-size:11px;color:var(--text3);font-style:italic;padding:4px 2px}
 .dot.market-live{background:#4ade80;box-shadow:0 0 6px #4ade80}
 .dot.market-closed{background:var(--text3)}
 .btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none;-webkit-user-select:none}
@@ -208,7 +262,7 @@ td.r{text-align:right}
 a{color:var(--accent);text-decoration:none}
 
 /* MODAL */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s;pointer-events:none}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s;pointer-events:none}
 .modal-backdrop.visible{opacity:1;pointer-events:all}
 .modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:96vh;overflow-y:auto;transform:translateY(14px);transition:transform .18s}
 .modal-box::-webkit-scrollbar{width:3px}
@@ -325,8 +379,48 @@ a{color:var(--accent);text-decoration:none}
   </div>
 </header>
 
+<div class="session-overlay" id="session-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo auth-logo-lockup">
+        <svg class="logo-v2" viewBox="4.5 6.5 23 19" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="V squared" width="40" height="33"><path d="M11.04 21.12L16.56 12.63Q17.19 11.69 17.20 11.14Q17.21 10.60 16.75 10.35Q16.29 10.09 15.45 10.05L15.45 10.05L15.55 9.63Q15.85 9.65 16.34 9.66Q16.84 9.67 17.38 9.68Q17.93 9.69 18.30 9.69L18.30 9.69Q18.79 9.69 19.17 9.67Q19.54 9.65 19.88 9.63L19.88 9.63L19.78 10.05Q19.36 10.16 18.98 10.38Q18.60 10.60 18.19 11.05Q17.78 11.50 17.28 12.28L17.28 12.28L9.25 24.61Q8.98 24.58 8.72 24.58Q8.46 24.58 8.18 24.61L8.18 24.61L6.52 11.40Q6.44 10.64 6.08 10.36Q5.73 10.07 5.43 10.05L5.43 10.05L5.54 9.63Q6.08 9.65 6.92 9.67Q7.76 9.69 8.56 9.69L8.56 9.69Q9.57 9.69 10.40 9.67Q11.23 9.65 11.77 9.63L11.77 9.63L11.67 10.05Q11.00 10.07 10.60 10.21Q10.20 10.35 10.05 10.70Q9.91 11.06 9.99 11.82L9.99 11.82L11.04 21.12Z" fill="#c8f59a"></path><path d="M25.00 7.16L25.00 7.16Q25.82 7.16 26.30 7.47Q26.77 7.78 26.77 8.31L26.77 8.31Q26.77 8.73 26.49 9.12Q26.22 9.50 25.78 9.85Q25.35 10.20 24.85 10.50Q24.35 10.81 23.89 11.08Q23.44 11.35 23.12 11.58L23.12 11.58Q23.39 11.58 23.73 11.66Q24.06 11.73 24.43 11.81Q24.80 11.89 25.14 11.89L25.14 11.89Q25.56 11.89 25.82 11.76Q26.08 11.63 26.08 11.36L26.08 11.36Q26.08 11.03 25.68 10.82L25.68 10.82L25.80 10.68Q26.12 10.84 26.26 11.07Q26.41 11.29 26.41 11.61L26.41 11.61Q26.41 11.97 26.24 12.30Q26.06 12.64 25.69 12.85Q25.32 13.07 24.70 13.07L24.70 13.07Q24.35 13.07 24.01 12.99Q23.67 12.91 23.32 12.83Q22.96 12.75 22.55 12.74L22.55 12.74Q22.13 12.71 21.85 12.79Q21.57 12.86 21.23 13L21.23 13L21.28 12.77Q21.51 12.58 21.89 12.31Q22.26 12.04 22.70 11.70Q23.15 11.36 23.59 10.97Q24.03 10.58 24.40 10.15Q24.78 9.72 25.00 9.27Q25.22 8.82 25.22 8.36L25.22 8.36Q25.22 7.92 25.00 7.69Q24.78 7.47 24.38 7.47L24.38 7.47Q24.06 7.47 23.73 7.61Q23.39 7.75 23.11 8.00Q22.83 8.25 22.66 8.55Q22.49 8.85 22.49 9.17L22.49 9.17Q22.49 9.44 22.64 9.57Q22.79 9.70 23.13 9.70L23.13 9.70Q23.44 9.70 23.66 9.58Q23.89 9.47 24.14 9.25L24.14 9.25L24.27 9.40Q23.96 9.69 23.64 9.81Q23.33 9.93 23.05 9.93L23.05 9.93Q22.88 9.93 22.68 9.87Q22.49 9.81 22.36 9.65Q22.23 9.49 22.23 9.18L22.23 9.18Q22.23 8.82 22.43 8.46Q22.64 8.11 23.01 7.81Q23.38 7.51 23.89 7.33Q24.39 7.16 25.00 7.16Z" fill="#9ed870"></path></svg>
+        <div class="logo-divider"></div>
+        <div class="logo-wordmark">
+          <span class="logo-name">The Value Vector</span>
+          <span class="logo-tag">Equity Research</span>
+        </div>
+      </div>
+    </div>
+    <div class="auth-title" id="auth-title">Sign in</div>
+    <p class="auth-sub" id="auth-sub">Access your stock screener.</p>
+
+    <div class="auth-fields">
+      <input class="auth-input" id="auth-email" type="email" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')authSubmit()">
+      <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-note" id="auth-note"></div>
+
+    <button class="btn btn-primary auth-submit" id="auth-submit" onclick="authSubmit()">Sign in</button>
+
+    <div class="auth-links">
+      <span class="auth-link auth-link-primary" id="auth-toggle-mode" onclick="authToggleMode()">Need an account? Sign up</span>
+      <span class="auth-link" id="auth-forgot" onclick="authForgot()">Forgot password?</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="profile-backdrop"></div>
+
 <div class="layout">
   <aside class="sidebar">
+
+    <!-- Profile -->
+    <button class="profile-btn" onclick="openProfile()">
+      <span class="profile-btn-avatar" id="profile-btn-avatar"></span>
+      <span class="profile-btn-text">View profile</span>
+    </button>
 
     <!-- Presets -->
     <div class="section">
@@ -539,10 +633,21 @@ a{color:var(--accent);text-decoration:none}
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
+
+// Supabase auth client. One instance; persists the session in localStorage on
+// this origin (the screener subdomain), which is where login happens.
+const sb = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+
+// Cached session so getCurrentUser() can stay synchronous for all callers.
+// Populated on boot and kept fresh via onAuthStateChange.
+let _session = null;
 const PRICE_PROXY = '/api/price';
 const FMP_KEY = 'YOUR_FMP_KEY_HERE';
 
@@ -1222,22 +1327,312 @@ setInterval(refreshPrices, 5 * 60 * 1000);
 
 // ── PRESETS ──────────────────────────────────────────────────────────────────
 
-const PRESET_HEADERS = {
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Content-Type': 'application/json',
-  'Accept': 'application/json'
-};
+// Headers for preset REST calls. Uses the signed-in user's access token when
+// available (required for RLS to scope queries to the user), falling back to the
+// anon key otherwise.
+function presetHeaders(extra) {
+  const token = (_session && _session.access_token) ? _session.access_token : SUPABASE_KEY;
+  return Object.assign({
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }, extra || {});
+}
 
-function getCFUserEmail() {
+// ── IDENTITY (provider-agnostic) ──────────────────────────────────────────────
+// Single source of truth for "who is signed in". Today it decodes the Cloudflare
+// Access JWT cookie; to move to Supabase Auth / Clerk later, change ONLY this
+// function — the rest of the app calls getCurrentUser()/currentUserEmail().
+// Reads the cached Supabase session (populated on boot / auth changes).
+// Stays synchronous so all existing callers work unchanged. Falls back to a
+// local-dev mock when opened from file://localhost.
+function getCurrentUser() {
+  if (_session && _session.user) {
+    const u = _session.user;
+    const name = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || (u.email ? u.email.split('@')[0] : 'User');
+    return { id: u.id, email: u.email, name, source: 'supabase' };
+  }
+  return devUser();
+}
+
+// Local-preview escape hatch: when opened from file:// or localhost (i.e. not a
+// real deployment), return a mock user so the screener is viewable without a
+// session. Returns null in production, so the auth overlay fires correctly.
+function devUser() {
+  const h = location.hostname;
+  const isLocal = location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h === '';
+  if (!isLocal) return null;
+  return { id: 'dev-local', email: 'dev@localhost', name: 'Local Dev', source: 'dev-mock' };
+}
+
+function currentUserEmail() {
+  const u = getCurrentUser();
+  return u ? u.email : null;
+}
+
+function currentUserId() {
+  const u = getCurrentUser();
+  return u ? u.id : null;
+}
+
+// Back-compat alias for existing callers.
+function getCFUserEmail() { return currentUserEmail(); }
+
+// Sign out via Supabase, then re-show the auth overlay.
+async function signOut() {
+  try { if (sb) await sb.auth.signOut(); } catch(e) {}
+  _session = null;
+  closeProfile();
+  showAuth();
+}
+
+// Populate the sidebar profile button avatar. If no user, show the auth overlay.
+function initAccount() {
+  const u = getCurrentUser();
+  if (!u) { showAuth(); return; }
+  const pfAvatar = document.getElementById('profile-btn-avatar');
+  if (pfAvatar) pfAvatar.textContent = (u.name || u.email).charAt(0);
+}
+
+// ── AUTH OVERLAY ──────────────────────────────────────────────────────────────
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function showAuth() {
+  const ov = document.getElementById('session-overlay');
+  if (ov) ov.classList.add('show');
+}
+function hideAuth() {
+  const ov = document.getElementById('session-overlay');
+  if (ov) ov.classList.remove('show');
+}
+// Back-compat: old callers referenced showSessionExpired.
+function showSessionExpired() { showAuth(); }
+
+function authSetMode(mode) {
+  authMode = mode;
+  const title = document.getElementById('auth-title');
+  const sub = document.getElementById('auth-sub');
+  const submit = document.getElementById('auth-submit');
+  const toggle = document.getElementById('auth-toggle-mode');
+  const forgot = document.getElementById('auth-forgot');
+  const pw = document.getElementById('auth-password');
+  authClearMessages();
+  if (mode === 'signup') {
+    title.textContent = 'Create account';
+    sub.textContent = 'Sign up to start screening.';
+    submit.textContent = 'Sign up';
+    toggle.textContent = 'Already have an account? Sign in';
+    forgot.style.display = 'none';
+    pw.setAttribute('autocomplete', 'new-password');
+  } else {
+    title.textContent = 'Sign in';
+    sub.textContent = 'Access your stock screener.';
+    submit.textContent = 'Sign in';
+    toggle.textContent = 'Need an account? Sign up';
+    forgot.style.display = '';
+    pw.setAttribute('autocomplete', 'current-password');
+  }
+}
+
+function authToggleMode() {
+  authSetMode(authMode === 'signin' ? 'signup' : 'signin');
+}
+
+function authClearMessages() {
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-note').textContent = '';
+}
+function authError(msg) {
+  document.getElementById('auth-error').textContent = msg;
+  document.getElementById('auth-note').textContent = '';
+}
+function authNote(msg) {
+  document.getElementById('auth-note').textContent = msg;
+  document.getElementById('auth-error').textContent = '';
+}
+function authBusy(on) {
+  document.querySelector('.auth-card').classList.toggle('busy', on);
+}
+
+async function authSubmit() {
+  if (!sb) { authError('Auth unavailable. Reload the page.'); return; }
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) { authError('Enter your email and password.'); return; }
+  if (authMode === 'signup' && password.length < 6) { authError('Password must be at least 6 characters.'); return; }
+  authBusy(true); authClearMessages();
   try {
-    const cookie = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('CF_Authorization='));
-    if (!cookie) return null;
-    const payload = cookie.split('=')[1].split('.')[1];
-    if (!payload) return null;
-    const decoded = JSON.parse(atob(payload.replace(/-/g,'+').replace(/_/g,'/')));
-    return decoded.email || null;
-  } catch(e) { return null; }
+    if (authMode === 'signup') {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) { authError(error.message); return; }
+      // With email confirmation on, there's no session until they confirm.
+      if (!data.session) {
+        authNote('Check your email to confirm your account, then sign in.');
+        authSetMode('signin');
+        authNote('Check your email to confirm your account, then sign in.');
+      }
+      // If confirmation were off, onAuthStateChange would log them in.
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { authError(error.message); return; }
+      // Success handled by onAuthStateChange.
+    }
+  } catch(e) {
+    authError('Something went wrong. Try again.');
+  } finally {
+    authBusy(false);
+  }
+}
+
+async function authForgot() {
+  if (!sb) return;
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { authError('Enter your email above first, then tap forgot password.'); return; }
+  authBusy(true); authClearMessages();
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: ACCOUNT_SETTINGS_URL });
+    if (error) { authError(error.message); return; }
+    authNote('Password reset link sent. Check your email.');
+  } catch(e) {
+    authError('Could not send reset email. Try again.');
+  } finally {
+    authBusy(false);
+  }
+}
+
+// Provider account-settings URL — where users change email/password. Swap this
+// when the auth provider changes (CF Access has no self-serve page, so we point
+// at the landing page's account area for now).
+const ACCOUNT_SETTINGS_URL = 'https://thevaluevector.com/account';
+
+function openProfile() {
+  const u = getCurrentUser();
+  if (!u) { showSessionExpired(); return; }
+  const initial = (u.name || u.email).charAt(0);
+  const name = u.name || u.email.split('@')[0];
+  document.getElementById('profile-backdrop').innerHTML = `
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:400px">
+      <div class="modal-header">
+        <div><h2 class="modal-co-name">Profile</h2><div class="modal-co-meta"><span>Account &amp; presets</span></div></div>
+        <button class="modal-close" onclick="closeProfile()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="pf-identity">
+          <div class="pf-identity-avatar">${initial}</div>
+          <div><div class="pf-identity-name">${name}</div><div class="pf-identity-email">${u.email}</div></div>
+        </div>
+
+        <div class="pf-section">
+          <div class="pf-section-title">Presets</div>
+          <div class="pf-presets" id="pf-presets"><div class="pf-empty">Loading…</div></div>
+        </div>
+
+        <div class="pf-section">
+          <div class="pf-section-title">Account</div>
+          <div class="pf-row">
+            <a class="pf-btn" href="${ACCOUNT_SETTINGS_URL}">Manage account<span class="pf-btn-ext">↗</span></a>
+          </div>
+          <div class="pf-row">
+            <button class="pf-btn" onclick="signOut()">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('profile-backdrop').classList.add('visible');
+  renderProfilePresets();
+}
+
+function closeProfile() {
+  document.getElementById('profile-backdrop').classList.remove('visible');
+}
+
+// Sample presets shown only in local preview (file://, localhost), so the
+// populated state is visible without a Supabase backend. Empty in production.
+function devSamplePresets() {
+  const h = location.hostname;
+  const isLocal = location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h === '';
+  if (!isLocal) return [];
+  return [
+    { id: 'sample-1', name: 'Undervalued tech', created_at: '2026-05-20T00:00:00Z', filters: {} },
+    { id: 'sample-2', name: 'Profitable small caps', created_at: '2026-05-24T00:00:00Z', filters: {} },
+    { id: 'sample-3', name: 'High FCF yield, low debt', created_at: '2026-05-27T00:00:00Z', filters: {} }
+  ];
+}
+
+function renderPresetRows(presets) {
+  const el = document.getElementById('pf-presets');
+  if (!el) return;
+  if (!Array.isArray(presets) || presets.length === 0) {
+    el.innerHTML = '<div class="pf-empty">No presets yet. Build a filter set and save it from the Presets panel.</div>';
+    return;
+  }
+  el.innerHTML = presets.map(p => {
+    const d = p.created_at ? new Date(p.created_at).toLocaleDateString([], {month:'short', day:'numeric'}) : '';
+    const safeName = (p.name || '').replace(/"/g, '&quot;');
+    return `<div class="pf-preset" data-id="${p.id}">
+      <span class="pf-preset-name">${p.name || '—'}</span>
+      <span class="pf-preset-date">${d}</span>
+      <button class="pf-preset-act" onclick="startRenamePreset('${p.id}','${safeName}')" title="Rename">rename</button>
+      <button class="pf-preset-act del" onclick="deleteProfilePreset('${p.id}')" title="Delete">delete</button>
+    </div>`;
+  }).join('');
+}
+
+async function renderProfilePresets() {
+  const el = document.getElementById('pf-presets');
+  if (!el) return;
+  const email = currentUserEmail();
+  if (!email) { el.innerHTML = '<div class="pf-empty">Not signed in.</div>'; return; }
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?user_email=eq.${encodeURIComponent(email)}&order=created_at.asc`, { headers: presetHeaders() });
+    let presets = await res.json();
+    if (!Array.isArray(presets) || presets.length === 0) presets = devSamplePresets();
+    renderPresetRows(presets);
+  } catch(e) {
+    const sample = devSamplePresets();
+    if (sample.length) renderPresetRows(sample);
+    else el.innerHTML = '<div class="pf-empty">Could not load presets.</div>';
+  }
+}
+
+function startRenamePreset(id, currentName) {
+  const row = document.querySelector(`.pf-preset[data-id="${id}"]`);
+  if (!row) return;
+  row.innerHTML = `
+    <input class="pf-preset-input" id="pf-rename-input" type="text" maxlength="40" value="${currentName.replace(/&quot;/g,'"')}" onkeydown="if(event.key==='Enter')commitRenamePreset('${id}');if(event.key==='Escape')renderProfilePresets()">
+    <button class="pf-preset-act" onclick="commitRenamePreset('${id}')">save</button>
+    <button class="pf-preset-act" onclick="renderProfilePresets()">cancel</button>`;
+  const inp = document.getElementById('pf-rename-input');
+  inp.focus(); inp.select();
+}
+
+async function commitRenamePreset(id) {
+  const inp = document.getElementById('pf-rename-input');
+  const email = currentUserEmail();
+  if (!inp || !email) return;
+  const newName = inp.value.trim();
+  if (!newName) { renderProfilePresets(); return; }
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/presets?id=eq.${id}&user_email=eq.${encodeURIComponent(email)}`, {
+      method: 'PATCH',
+      headers: presetHeaders(),
+      body: JSON.stringify({ name: newName })
+    });
+  } catch(e) {}
+  renderProfilePresets();
+  loadPresets();   // refresh the sidebar list too
+}
+
+async function deleteProfilePreset(id) {
+  const email = currentUserEmail();
+  if (!email) return;
+  if (!confirm('Delete this preset? This cannot be undone.')) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/presets?id=eq.${id}&user_email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: presetHeaders() });
+  } catch(e) {}
+  renderProfilePresets();
+  loadPresets();
 }
 
 function captureFilters() {
@@ -1284,7 +1679,7 @@ async function loadPresets() {
     return;
   }
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?user_email=eq.${encodeURIComponent(email)}&order=created_at.asc`, { headers: PRESET_HEADERS });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?user_email=eq.${encodeURIComponent(email)}&order=created_at.asc`, { headers: presetHeaders() });
     if (!res.ok) throw new Error();
     const presets = await res.json();
     if (!presets.length) {
@@ -1313,8 +1708,8 @@ async function savePreset() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/presets`, {
       method: 'POST',
-      headers: { ...PRESET_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ user_email: email, name, filters: captureFilters() })
+      headers: presetHeaders({ 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({ user_email: email, user_id: currentUserId(), name, filters: captureFilters() })
     });
     if (!res.ok) throw new Error((await res.json().catch(()=>({}))).message || 'Save failed');
     nameEl.value = '';
@@ -1330,7 +1725,7 @@ async function applyPreset(id) {
   const email = getCFUserEmail();
   if (!email) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?id=eq.${id}&user_email=eq.${encodeURIComponent(email)}&limit=1`, { headers: PRESET_HEADERS });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?id=eq.${id}&user_email=eq.${encodeURIComponent(email)}&limit=1`, { headers: presetHeaders() });
     const [p] = await res.json();
     if (p?.filters) {
       applyFilters(p.filters);
@@ -1344,7 +1739,7 @@ async function deletePreset(id) {
   const email = getCFUserEmail();
   if (!email) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?id=eq.${id}&user_email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: PRESET_HEADERS });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/presets?id=eq.${id}&user_email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: presetHeaders() });
     if (!res.ok) throw new Error();
     await loadPresets();
   } catch(e) { alert('Error deleting preset'); }
@@ -1561,7 +1956,40 @@ window.renderRecents = renderRecents;
   renderIndustryChips();
 })();
 
-loadPresets();
+// ── AUTH BOOTSTRAP ────────────────────────────────────────────────────────────
+// Resolve the current session before deciding what to show, then keep it fresh.
+async function bootAuth() {
+  if (sb) {
+    try {
+      const { data } = await sb.auth.getSession();
+      _session = data ? data.session : null;
+    } catch(e) { _session = null; }
+
+    // React to login / logout / token refresh in real time.
+    sb.auth.onAuthStateChange((event, session) => {
+      _session = session;
+      if (session && session.user) {
+        hideAuth();
+        initAccount();
+        loadPresets();
+      } else {
+        showAuth();
+      }
+    });
+  }
+
+  // Initial paint based on whatever we resolved (or the dev mock on localhost).
+  const u = getCurrentUser();
+  if (u) {
+    initAccount();
+    loadPresets();
+  } else {
+    authSetMode('signin');
+    showAuth();
+  }
+}
+
+bootAuth();
 
 // ── STOCK MODAL ───────────────────────────────────────────────────────────────
 
@@ -2222,9 +2650,12 @@ function closeModal() {
 document.getElementById('modal-backdrop').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-backdrop')) closeModal();
 });
+document.getElementById('profile-backdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('profile-backdrop')) closeProfile();
+});
 
 // Close on Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeProfile(); } });
 
 // Expose functions used by inline HTML handlers
 window.syncSlider = syncSlider;
@@ -2236,6 +2667,16 @@ window.toggleIndustry = toggleIndustry;
 window.renderIndustryList = renderIndustryList;
 window.positionIndustryList = positionIndustryList;
 window.runScreen = runScreen;
+window.signOut = signOut;
+window.authSubmit = authSubmit;
+window.authToggleMode = authToggleMode;
+window.authForgot = authForgot;
+window.openProfile = openProfile;
+window.closeProfile = closeProfile;
+window.startRenamePreset = startRenamePreset;
+window.commitRenamePreset = commitRenamePreset;
+window.deleteProfilePreset = deleteProfilePreset;
+window.renderProfilePresets = renderProfilePresets;
 window.sortBy = sortBy;
 window.savePreset = savePreset;
 window.applyPreset = applyPreset;
