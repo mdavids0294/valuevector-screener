@@ -87,7 +87,7 @@ th.wl-cell{width:22px}
 .modal-star{background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text3);padding:0;margin-right:9px;transition:color .12s,transform .12s;font-family:var(--sans);position:relative;top:0;flex-shrink:0}
 .modal-star:hover{color:var(--accent2);transform:scale(1.12)}
 .modal-star.on{color:var(--accent)}
-.ma-back-arrow{background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:18px;line-height:1;color:var(--text2);padding:0;transition:color .12s;position:relative;top:1px}
+.ma-back-arrow{background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:26px;line-height:1;color:var(--text2);padding:0;transition:color .12s;flex-shrink:0}
 .ma-back-arrow:hover{color:var(--text)}
 .ma-msg{font-family:var(--mono);font-size:10.5px;line-height:1.4;min-height:0;margin:0}
 .ma-msg:empty{display:none}
@@ -1815,11 +1815,10 @@ function renderManageAccount() {
   if (!u) { closeProfile(); return; }
   document.getElementById('profile-box').innerHTML = `
       <div class="modal-header">
-        <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
           <button class="ma-back-arrow" onclick="renderProfileMain()" aria-label="Back">←</button>
           <div><h2 class="modal-co-name">Manage account</h2><div class="modal-co-meta"><span>${u.email}</span></div></div>
         </div>
-        <button class="modal-close" onclick="closeProfile()" aria-label="Close">✕</button>
       </div>
       <div class="modal-body">
         <div class="pf-section" style="margin-bottom:18px;gap:6px">
