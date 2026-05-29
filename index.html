@@ -59,6 +59,8 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .auth-error{font-family:var(--mono);font-size:10.5px;color:var(--red);min-height:14px;margin-bottom:8px;line-height:1.4}
 .auth-note{font-family:var(--mono);font-size:10.5px;color:var(--accent);min-height:0;line-height:1.4}
 .auth-note:not(:empty){margin-bottom:8px}
+.auth-turnstile{display:flex;justify-content:center;min-height:0;margin-bottom:0}
+.auth-turnstile:not(:empty){margin-bottom:14px}
 .auth-submit{width:100%;justify-content:center;margin-bottom:14px}
 .auth-links{display:flex;flex-direction:column;gap:10px;margin-top:2px}
 .auth-link{font-family:var(--mono);font-size:11px;color:var(--text3);cursor:pointer;transition:color .12s}
@@ -402,6 +404,8 @@ a{color:var(--accent);text-decoration:none}
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-note" id="auth-note"></div>
 
+    <div class="auth-turnstile" id="auth-turnstile"></div>
+
     <button class="btn btn-primary auth-submit" id="auth-submit" onclick="authSubmit()">Sign in</button>
 
     <div class="auth-links">
@@ -634,6 +638,7 @@ a{color:var(--accent);text-decoration:none}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 const SUPABASE_URL = 'https://jfvhbuklatpgyondekgc.supabase.co';
@@ -648,6 +653,16 @@ const sb = (window.supabase && window.supabase.createClient)
 // Cached session so getCurrentUser() can stay synchronous for all callers.
 // Populated on boot and kept fresh via onAuthStateChange.
 let _session = null;
+
+// Cloudflare Turnstile (bot protection on auth). Site key is public.
+// On localhost/file:// the real key's hostname check fails, so use Cloudflare's
+// always-passing test key there so dev preview still works.
+const TURNSTILE_PROD_KEY = '0x4AAAAAADYIEDrtN0MqFLEG';
+const TURNSTILE_TEST_KEY = '1x00000000000000000000AA';
+const _tsLocal = (location.protocol === 'file:' || ['localhost','127.0.0.1',''].includes(location.hostname));
+const TURNSTILE_SITE_KEY = _tsLocal ? TURNSTILE_TEST_KEY : TURNSTILE_PROD_KEY;
+let _turnstileId = null;       // widget instance id
+let _turnstileToken = null;    // latest token
 const PRICE_PROXY = '/api/price';
 const FMP_KEY = 'YOUR_FMP_KEY_HERE';
 
@@ -1401,10 +1416,38 @@ let authMode = 'signin'; // 'signin' | 'signup'
 function showAuth() {
   const ov = document.getElementById('session-overlay');
   if (ov) ov.classList.add('show');
+  renderTurnstile();
 }
 function hideAuth() {
   const ov = document.getElementById('session-overlay');
   if (ov) ov.classList.remove('show');
+}
+
+// Render the Turnstile widget once the API is ready. Managed mode = invisible
+// for most real users, challenges only suspicious ones.
+function renderTurnstile() {
+  const el = document.getElementById('auth-turnstile');
+  if (!el || _turnstileId !== null) return;            // already rendered
+  if (!window.turnstile || !window.turnstile.render) {  // API not loaded yet — retry shortly
+    setTimeout(renderTurnstile, 300);
+    return;
+  }
+  try {
+    _turnstileId = window.turnstile.render(el, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: 'dark',
+      callback: (token) => { _turnstileToken = token; },
+      'expired-callback': () => { _turnstileToken = null; },
+      'error-callback': () => { _turnstileToken = null; }
+    });
+  } catch(e) { /* render can throw if called twice; ignore */ }
+}
+
+function resetTurnstile() {
+  _turnstileToken = null;
+  if (window.turnstile && _turnstileId !== null) {
+    try { window.turnstile.reset(_turnstileId); } catch(e) {}
+  }
 }
 // Back-compat: old callers referenced showSessionExpired.
 function showSessionExpired() { showAuth(); }
@@ -1461,20 +1504,23 @@ async function authSubmit() {
   const password = document.getElementById('auth-password').value;
   if (!email || !password) { authError('Enter your email and password.'); return; }
   if (authMode === 'signup' && password.length < 6) { authError('Password must be at least 6 characters.'); return; }
+  const captchaToken = _turnstileToken || undefined;
+  // Supabase enforces CAPTCHA on both endpoints once enabled. If the widget
+  // hasn't produced a token yet, ask the user to wait a moment.
+  if (!captchaToken) { authError('Just a moment — verifying you\u2019re human. Try again in a second.'); return; }
   authBusy(true); authClearMessages();
   try {
     if (authMode === 'signup') {
-      const { data, error } = await sb.auth.signUp({ email, password });
+      const { data, error } = await sb.auth.signUp({ email, password, options: { captchaToken } });
       if (error) { authError(error.message); return; }
       // With email confirmation on, there's no session until they confirm.
       if (!data.session) {
-        authNote('Check your email to confirm your account, then sign in.');
         authSetMode('signin');
         authNote('Check your email to confirm your account, then sign in.');
       }
       // If confirmation were off, onAuthStateChange would log them in.
     } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken } });
       if (error) { authError(error.message); return; }
       // Success handled by onAuthStateChange.
     }
@@ -1482,6 +1528,7 @@ async function authSubmit() {
     authError('Something went wrong. Try again.');
   } finally {
     authBusy(false);
+    resetTurnstile();  // tokens are single-use; get a fresh one for the next attempt
   }
 }
 
