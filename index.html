@@ -1751,7 +1751,7 @@ async function authForgot() {
   if (!email) { authError('Enter your email above first, then tap forgot password.'); return; }
   authBusy(true); authClearMessages();
   try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: ACCOUNT_SETTINGS_URL });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
     if (error) { authError(error.message); return; }
     authNote('Password reset link sent. Check your email.');
   } catch(e) {
@@ -1761,18 +1761,21 @@ async function authForgot() {
   }
 }
 
-// Provider account-settings URL — where users change email/password. Swap this
-// when the auth provider changes (CF Access has no self-serve page, so we point
-// at the landing page's account area for now).
-const ACCOUNT_SETTINGS_URL = 'https://thevaluevector.com/account';
-
 function openProfile() {
   const u = getCurrentUser();
   if (!u) { showSessionExpired(); return; }
+  document.getElementById('profile-backdrop').innerHTML = '<div class="modal-box" id="profile-box" onclick="event.stopPropagation()" style="max-width:400px"></div>';
+  document.getElementById('profile-backdrop').classList.add('visible');
+  renderProfileMain();
+}
+
+// Main profile view: identity + presets + account actions.
+function renderProfileMain() {
+  const u = getCurrentUser();
+  if (!u) { closeProfile(); if (typeof showSessionExpired === 'function') showSessionExpired(); return; }
   const initial = (u.name || u.email).charAt(0);
   const name = u.name || u.email.split('@')[0];
-  document.getElementById('profile-backdrop').innerHTML = `
-    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:400px">
+  document.getElementById('profile-box').innerHTML = `
       <div class="modal-header">
         <div><h2 class="modal-co-name">Profile</h2><div class="modal-co-meta"><span>Account &amp; presets</span></div></div>
         <button class="modal-close" onclick="closeProfile()" aria-label="Close">✕</button>
@@ -1791,16 +1794,93 @@ function openProfile() {
         <div class="pf-section">
           <div class="pf-section-title">Account</div>
           <div class="pf-row">
-            <a class="pf-btn" href="${ACCOUNT_SETTINGS_URL}">Manage account<span class="pf-btn-ext">↗</span></a>
+            <button class="pf-btn" onclick="renderManageAccount()">Manage account<span class="pf-btn-ext">→</span></button>
           </div>
           <div class="pf-row">
-            <button class="pf-btn" onclick="signOut()">Sign out</button>
+            <button class="pf-btn pf-btn-danger" onclick="signOut()">Sign out</button>
           </div>
         </div>
-      </div>
-    </div>`;
-  document.getElementById('profile-backdrop').classList.add('visible');
+      </div>`;
   renderProfilePresets();
+}
+
+// In-app manage-account sub-view: change email + change password via Supabase
+// updateUser (authenticated, no CAPTCHA token needed). Back returns to main.
+function renderManageAccount() {
+  const u = getCurrentUser();
+  if (!u) { closeProfile(); return; }
+  document.getElementById('profile-box').innerHTML = `
+      <div class="modal-header">
+        <div><h2 class="modal-co-name">Manage account</h2><div class="modal-co-meta"><span>${u.email}</span></div></div>
+        <button class="modal-close" onclick="closeProfile()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <button class="pf-btn" style="flex:0;min-width:0;margin-bottom:14px" onclick="renderProfileMain()"><span class="pf-btn-ext">←</span> Back</button>
+
+        <div class="pf-section" style="margin-bottom:18px">
+          <div class="pf-section-title">Change email</div>
+          <input class="auth-input" id="ma-email" type="email" placeholder="New email" autocomplete="email" value="">
+          <div class="auth-error" id="ma-email-err"></div>
+          <div class="auth-note" id="ma-email-note"></div>
+          <button class="pf-btn" id="ma-email-btn" style="justify-content:center" onclick="maChangeEmail()">Update email</button>
+        </div>
+
+        <div class="pf-section">
+          <div class="pf-section-title">Change password</div>
+          <input class="auth-input" id="ma-pw" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password">
+          <input class="auth-input" id="ma-pw2" type="password" placeholder="Confirm new password" autocomplete="new-password" style="margin-top:8px">
+          <div class="auth-error" id="ma-pw-err"></div>
+          <div class="auth-note" id="ma-pw-note"></div>
+          <button class="pf-btn" id="ma-pw-btn" style="justify-content:center" onclick="maChangePassword()">Update password</button>
+        </div>
+      </div>`;
+}
+
+function maMsg(id, msg, isErr) {
+  const errEl = document.getElementById(id + '-err');
+  const noteEl = document.getElementById(id + '-note');
+  if (errEl) errEl.textContent = isErr ? msg : '';
+  if (noteEl) noteEl.textContent = isErr ? '' : msg;
+}
+
+async function maChangeEmail() {
+  const email = (document.getElementById('ma-email').value || '').trim();
+  maMsg('ma-email', '', true);
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { maMsg('ma-email', 'Enter a valid email address.', true); return; }
+  if (!sb) { maMsg('ma-email', 'Not available in preview.', true); return; }
+  const btn = document.getElementById('ma-email-btn');
+  btn.disabled = true; btn.textContent = 'Updating…';
+  try {
+    const { error } = await sb.auth.updateUser({ email });
+    if (error) throw error;
+    maMsg('ma-email', 'Check your inbox — a confirmation link was sent to verify the change.', false);
+  } catch (e) {
+    maMsg('ma-email', e.message || 'Could not update email.', true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Update email';
+  }
+}
+
+async function maChangePassword() {
+  const pw = document.getElementById('ma-pw').value || '';
+  const pw2 = document.getElementById('ma-pw2').value || '';
+  maMsg('ma-pw', '', true);
+  if (pw.length < 6) { maMsg('ma-pw', 'Password must be at least 6 characters.', true); return; }
+  if (pw !== pw2) { maMsg('ma-pw', 'Passwords do not match.', true); return; }
+  if (!sb) { maMsg('ma-pw', 'Not available in preview.', true); return; }
+  const btn = document.getElementById('ma-pw-btn');
+  btn.disabled = true; btn.textContent = 'Updating…';
+  try {
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) throw error;
+    document.getElementById('ma-pw').value = '';
+    document.getElementById('ma-pw2').value = '';
+    maMsg('ma-pw', 'Password updated.', false);
+  } catch (e) {
+    maMsg('ma-pw', e.message || 'Could not update password.', true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Update password';
+  }
 }
 
 function closeProfile() {
@@ -2942,6 +3022,10 @@ window.authToggleMode = authToggleMode;
 window.authForgot = authForgot;
 window.openProfile = openProfile;
 window.closeProfile = closeProfile;
+window.renderProfileMain = renderProfileMain;
+window.renderManageAccount = renderManageAccount;
+window.maChangeEmail = maChangeEmail;
+window.maChangePassword = maChangePassword;
 window.startRenamePreset = startRenamePreset;
 window.commitRenamePreset = commitRenamePreset;
 window.deleteProfilePreset = deleteProfilePreset;
