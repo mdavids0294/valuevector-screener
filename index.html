@@ -84,9 +84,9 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .wl-star.on{color:var(--accent)}
 td.wl-cell{width:22px;text-align:center;padding-left:4px;padding-right:0}
 th.wl-cell{width:22px}
-.modal-star{background:none;border:0.5px solid var(--border2);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;color:var(--text3);padding:6px 9px;margin-right:10px;transition:all .15s;font-family:var(--sans)}
-.modal-star:hover{color:var(--accent2);border-color:var(--accent2)}
-.modal-star.on{color:var(--accent);border-color:rgba(200,245,154,0.4)}
+.modal-star{background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text3);padding:0;margin-right:9px;transition:color .12s,transform .12s;font-family:var(--sans);position:relative;top:0;flex-shrink:0}
+.modal-star:hover{color:var(--accent2);transform:scale(1.12)}
+.modal-star.on{color:var(--accent)}
 /* Watchlist mode cues */
 .profile-btn.wl-active{background:rgba(200,245,154,0.10);border-color:rgba(200,245,154,0.45)}
 .wl-banner{display:none;align-items:center;justify-content:space-between;gap:12px;margin:8px 12px 0;padding:8px 12px;background:rgba(200,245,154,0.07);border:0.5px solid rgba(200,245,154,0.30);border-radius:7px}
@@ -289,7 +289,8 @@ a{color:var(--accent);text-decoration:none}
 .modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .modal-backdrop.visible .modal-box{transform:translateY(0)}
 .modal-header{padding:16px 20px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1}
-.modal-co-name{font-size:16px;font-weight:500;color:var(--text);margin:0 0 4px}
+.modal-co-name{font-size:16px;font-weight:500;color:var(--text);margin:0}
+.modal-name-row{display:flex;align-items:center;margin:0 0 4px}
 .modal-co-meta{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.08em}
 .modal-co-meta span{margin-right:10px}
 .modal-price{text-align:right;flex-shrink:0}
@@ -2428,7 +2429,10 @@ function openModal(symbol) {
     <div class="modal-box" id="modal-box">
       <div class="modal-header">
         <div>
-          <div class="modal-co-name">${c.name || c.symbol}</div>
+          <div class="modal-name-row">
+            <button class="modal-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button>
+            <div class="modal-co-name">${c.name || c.symbol}</div>
+          </div>
           <div class="modal-co-meta">
             <span>${c.symbol}</span><span>${c.exchange || ''}</span><span>${c.sector || ''}</span>
           </div>
@@ -2438,7 +2442,6 @@ function openModal(symbol) {
             <span class="modal-price-val">${priceFmt}</span>
             ${chgFmt ? '<span class="modal-price-chg modal-ratio-val ' + chgCls + '">' + chgFmt + '</span>' : ''}
           </div>
-          <button class="modal-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
       </div>
