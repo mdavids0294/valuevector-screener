@@ -546,6 +546,10 @@ const SUPABASE_KEY = 'sb_publishable_xsXK6FWFEj97OgczmOmu8g_Mh-txgcS';
 const PRICE_PROXY = '/api/price';
 const FMP_KEY = 'YOUR_FMP_KEY_HERE';
 
+// Hard liquidity floor — companies trading below this avg daily volume (shares)
+// are never shown, regardless of the volume slider. Tune as needed.
+const MIN_AVG_VOLUME = 3000;
+
 // Logarithmic market cap scale — each step is a meaningful jump
 const MC_SCALE = [
   0,           // 0 = No min
@@ -580,37 +584,39 @@ const MC_SCALE = [
   null         // 29 = No limit
 ];
 
-// Volume scale
+// Volume scale (shares/day). Concentrated in the 50K–5M range, where ~3,200 of
+// ~5,000 companies sit; coarser below 50K and above 5M. Real max avg volume is
+// only a few hundred million shares, so the scale tops out near there.
 const VOL_SCALE = [
   0,           // No min
-  10e3,        // $10K
-  25e3,        // $25K
-  50e3,        // $50K
-  100e3,       // $100K
-  250e3,       // $250K
-  500e3,       // $500K
-  1e6,         // $1M
-  2.5e6,       // $2.5M
-  5e6,         // $5M
-  10e6,        // $10M
-  25e6,        // $25M
-  50e6,        // $50M
-  100e6,       // $100M
-  250e6,       // $250M
-  500e6,       // $500M
-  1e9,         // $1B
-  2e9,         // $2B
-  5e9,         // $5B
-  10e9,        // $10B
-  25e9,        // $25B
-  50e9,        // $50B
-  100e9,       // $100B
-  150e9,       // $150B
-  200e9,       // $200B
-  204e9,       // ~max
-  204e9,
-  204e9,
-  204e9        // 28 = max
+  10e3,        // 10K
+  25e3,        // 25K
+  50e3,        // 50K
+  75e3,        // 75K
+  100e3,       // 100K
+  150e3,       // 150K
+  200e3,       // 200K
+  300e3,       // 300K
+  400e3,       // 400K
+  500e3,       // 500K
+  650e3,       // 650K
+  800e3,       // 800K
+  1e6,         // 1M
+  1.25e6,      // 1.25M
+  1.5e6,       // 1.5M
+  2e6,         // 2M
+  2.5e6,       // 2.5M
+  3e6,         // 3M
+  4e6,         // 4M
+  5e6,         // 5M
+  7.5e6,       // 7.5M
+  10e6,        // 10M
+  15e6,        // 15M
+  25e6,        // 25M
+  50e6,        // 50M
+  100e6,       // 100M
+  200e6,       // 200M
+  500e6        // 500M (effectively "everything")
 ];
 
 function mcLabel(idx) {
@@ -648,7 +654,7 @@ function volLabel(idx) {
   const val = VOL_SCALE[idx];
   if (val === 0) return 'No min';
   if (val >= 1e9) return (val/1e9).toFixed(0) + 'B';
-  if (val >= 1e6) return (val/1e6).toFixed(0) + 'M';
+  if (val >= 1e6) { const m = val/1e6; return (Number.isInteger(m) ? m.toFixed(0) : m.toFixed(2).replace(/0$/,'')) + 'M'; }
   return Math.round(val/1e3) + 'K';
 }
 
@@ -845,7 +851,7 @@ function setStatus(text, state) {
 let sortCol = 'pe', sortDir = 1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1175,6 +1181,16 @@ function applyRatioFilters(companies) {
   return companies.filter(c => {
     const r = c.ratios;
     if (!r) return false;
+    // Hard liquidity floor: never show names below MIN_AVG_VOLUME shares/day.
+    // Known avg_volume below the floor is always dropped. A null avg_volume is
+    // dropped only for OTC names (likely junk); on real exchanges a null is kept
+    // (probably just not yet populated by the nightly job).
+    const av = c.avg_volume;
+    if (av != null) {
+      if (av < MIN_AVG_VOLUME) return false;
+    } else if ((c.exchange || '').toUpperCase().includes('OTC')) {
+      return false;
+    }
     if (peMax !== null && r.pe_ratio !== null && r.pe_ratio > 0 && r.pe_ratio > peMax) return false;
     if (pbMax !== null && r.pb_ratio !== null && r.pb_ratio > 0 && r.pb_ratio > pbMax) return false;
     if (psMax !== null && r.ps_ratio !== null && r.ps_ratio > 0 && r.ps_ratio > psMax) return false;
@@ -1416,7 +1432,7 @@ async function selectResult(symbol) {
   if (existing) { openModal(symbol); return; }
   // Fetch full data
   try {
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -1442,7 +1458,7 @@ async function runSearchEnter(query, results) {
   try {
     const symbols = results.map(c => c.symbol);
     const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
     if (!r.ok) throw new Error();
