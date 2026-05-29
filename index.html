@@ -99,15 +99,6 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .pf-preset-act:hover{color:var(--text)}
 .pf-preset-act.del:hover{color:var(--red)}
 .pf-empty{font-family:var(--mono);font-size:11px;color:var(--text3);font-style:italic;padding:4px 2px}
-.pf-back{align-self:flex-start;background:none;border:none;color:var(--text3);font-family:var(--mono);font-size:11px;cursor:pointer;padding:0 0 4px;transition:color .12s}
-.pf-back:hover{color:var(--text)}
-.pf-hint{font-family:var(--mono);font-size:10px;color:var(--text3);margin:-2px 0 2px}
-.pf-section .auth-input{margin-bottom:2px}
-.pf-btn-action{justify-content:center;margin-top:4px}
-.ma-msg{font-family:var(--mono);font-size:10px;line-height:1.4;min-height:0;color:var(--text3)}
-.ma-msg:not(:empty){margin:4px 0 2px}
-.ma-msg.err{color:var(--red)}
-.ma-msg.ok{color:var(--accent)}
 .dot.market-live{background:#4ade80;box-shadow:0 0 6px #4ade80}
 .dot.market-closed{background:var(--text3)}
 .btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none;-webkit-user-select:none}
@@ -980,7 +971,7 @@ function setStatus(text, state) {
 let sortCol = 'pe', sortDir = 1, lastResults = [];
 
 async function supabaseQuery(params) {
-  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1545,32 +1536,26 @@ async function authForgot() {
   if (!sb) return;
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { authError('Enter your email above first, then tap forgot password.'); return; }
-  const captchaToken = _turnstileToken || undefined;
-  if (!captchaToken) { authError('Just a moment — verifying you\u2019re human. Try again in a second.'); return; }
   authBusy(true); authClearMessages();
   try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin, captchaToken });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: ACCOUNT_SETTINGS_URL });
     if (error) { authError(error.message); return; }
     authNote('Password reset link sent. Check your email.');
   } catch(e) {
     authError('Could not send reset email. Try again.');
   } finally {
     authBusy(false);
-    resetTurnstile();  // single-use token; refresh for the next attempt
   }
 }
+
+// Provider account-settings URL — where users change email/password. Swap this
+// when the auth provider changes (CF Access has no self-serve page, so we point
+// at the landing page's account area for now).
+const ACCOUNT_SETTINGS_URL = 'https://thevaluevector.com/account';
 
 function openProfile() {
   const u = getCurrentUser();
   if (!u) { showSessionExpired(); return; }
-  renderProfileMain();
-  document.getElementById('profile-backdrop').classList.add('visible');
-  renderProfilePresets();
-}
-
-function renderProfileMain() {
-  const u = getCurrentUser();
-  if (!u) return;
   const initial = (u.name || u.email).charAt(0);
   const name = u.name || u.email.split('@')[0];
   document.getElementById('profile-backdrop').innerHTML = `
@@ -1593,7 +1578,7 @@ function renderProfileMain() {
         <div class="pf-section">
           <div class="pf-section-title">Account</div>
           <div class="pf-row">
-            <button class="pf-btn" onclick="renderManageAccount()">Manage account<span class="pf-btn-ext">›</span></button>
+            <a class="pf-btn" href="${ACCOUNT_SETTINGS_URL}">Manage account<span class="pf-btn-ext">↗</span></a>
           </div>
           <div class="pf-row">
             <button class="pf-btn" onclick="signOut()">Sign out</button>
@@ -1601,86 +1586,8 @@ function renderProfileMain() {
         </div>
       </div>
     </div>`;
+  document.getElementById('profile-backdrop').classList.add('visible');
   renderProfilePresets();
-}
-
-function renderManageAccount() {
-  const u = getCurrentUser();
-  if (!u) return;
-  document.getElementById('profile-backdrop').innerHTML = `
-    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:400px">
-      <div class="modal-header">
-        <div><h2 class="modal-co-name">Manage account</h2><div class="modal-co-meta"><span>Email &amp; password</span></div></div>
-        <button class="modal-close" onclick="closeProfile()" aria-label="Close">✕</button>
-      </div>
-      <div class="modal-body">
-        <button class="pf-back" onclick="renderProfileMain()">‹ Back to profile</button>
-
-        <div class="pf-section">
-          <div class="pf-section-title">Email</div>
-          <p class="pf-hint">Current: ${u.email}</p>
-          <input class="auth-input" id="ma-email" type="email" placeholder="New email address" autocomplete="email">
-          <div class="ma-msg" id="ma-email-msg"></div>
-          <button class="pf-btn pf-btn-action" id="ma-email-btn" onclick="changeEmail()">Update email</button>
-        </div>
-
-        <div class="pf-section">
-          <div class="pf-section-title">Password</div>
-          <input class="auth-input" id="ma-pw" type="password" placeholder="New password (min 6 characters)" autocomplete="new-password">
-          <input class="auth-input" id="ma-pw2" type="password" placeholder="Confirm new password" autocomplete="new-password">
-          <div class="ma-msg" id="ma-pw-msg"></div>
-          <button class="pf-btn pf-btn-action" id="ma-pw-btn" onclick="changePassword()">Update password</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-function maMsg(id, msg, ok) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'ma-msg' + (ok ? ' ok' : (msg ? ' err' : ''));
-}
-
-async function changeEmail() {
-  if (!sb) return;
-  const email = document.getElementById('ma-email').value.trim();
-  if (!email) { maMsg('ma-email-msg', 'Enter a new email address.', false); return; }
-  const btn = document.getElementById('ma-email-btn');
-  btn.disabled = true; btn.textContent = 'Updating…';
-  maMsg('ma-email-msg', '', false);
-  try {
-    const { error } = await sb.auth.updateUser({ email });
-    if (error) { maMsg('ma-email-msg', error.message, false); return; }
-    // Supabase sends a confirmation link to BOTH addresses; change applies once confirmed.
-    maMsg('ma-email-msg', 'Confirmation sent. Check your email to finish the change.', true);
-  } catch(e) {
-    maMsg('ma-email-msg', 'Something went wrong. Try again.', false);
-  } finally {
-    btn.disabled = false; btn.textContent = 'Update email';
-  }
-}
-
-async function changePassword() {
-  if (!sb) return;
-  const pw = document.getElementById('ma-pw').value;
-  const pw2 = document.getElementById('ma-pw2').value;
-  if (!pw || pw.length < 6) { maMsg('ma-pw-msg', 'Password must be at least 6 characters.', false); return; }
-  if (pw !== pw2) { maMsg('ma-pw-msg', 'Passwords don\u2019t match.', false); return; }
-  const btn = document.getElementById('ma-pw-btn');
-  btn.disabled = true; btn.textContent = 'Updating…';
-  maMsg('ma-pw-msg', '', false);
-  try {
-    const { error } = await sb.auth.updateUser({ password: pw });
-    if (error) { maMsg('ma-pw-msg', error.message, false); return; }
-    maMsg('ma-pw-msg', 'Password updated.', true);
-    document.getElementById('ma-pw').value = '';
-    document.getElementById('ma-pw2').value = '';
-  } catch(e) {
-    maMsg('ma-pw-msg', 'Something went wrong. Try again.', false);
-  } finally {
-    btn.disabled = false; btn.textContent = 'Update password';
-  }
 }
 
 function closeProfile() {
@@ -1967,7 +1874,7 @@ async function selectResult(symbol) {
   if (existing) { openModal(symbol); return; }
   // Fetch full data
   try {
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -1993,7 +1900,7 @@ async function runSearchEnter(query, results) {
   try {
     const symbols = results.map(c => c.symbol);
     const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -2112,11 +2019,6 @@ async function bootAuth() {
         hideAuth();
         initAccount();
         loadPresets();
-        // Arrived via a password-reset link: open the change-password form.
-        if (event === 'PASSWORD_RECOVERY') {
-          openProfile();
-          renderManageAccount();
-        }
       } else {
         showAuth();
       }
@@ -2818,10 +2720,6 @@ window.authToggleMode = authToggleMode;
 window.authForgot = authForgot;
 window.openProfile = openProfile;
 window.closeProfile = closeProfile;
-window.renderProfileMain = renderProfileMain;
-window.renderManageAccount = renderManageAccount;
-window.changeEmail = changeEmail;
-window.changePassword = changePassword;
 window.startRenamePreset = startRenamePreset;
 window.commitRenamePreset = commitRenamePreset;
 window.deleteProfilePreset = deleteProfilePreset;
