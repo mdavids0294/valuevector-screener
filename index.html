@@ -87,6 +87,10 @@ th.wl-cell{width:22px}
 .modal-star{background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text3);padding:0;margin-right:9px;transition:color .12s,transform .12s;font-family:var(--sans);position:relative;top:0;flex-shrink:0}
 .modal-star:hover{color:var(--accent2);transform:scale(1.12)}
 .modal-star.on{color:var(--accent)}
+.ma-back{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--text2);padding:2px 0;margin-bottom:16px;transition:color .12s}
+.ma-back:hover{color:var(--text)}
+.ma-msg{font-family:var(--mono);font-size:10.5px;line-height:1.4;min-height:0;margin:0}
+.ma-msg:empty{display:none}
 /* Watchlist mode cues */
 .profile-btn.wl-active{background:rgba(200,245,154,0.10);border-color:rgba(200,245,154,0.45)}
 .wl-banner{display:none;align-items:center;justify-content:space-between;gap:12px;margin:8px 12px 0;padding:8px 12px;background:rgba(200,245,154,0.07);border:0.5px solid rgba(200,245,154,0.30);border-radius:7px}
@@ -1815,22 +1819,22 @@ function renderManageAccount() {
         <button class="modal-close" onclick="closeProfile()" aria-label="Close">✕</button>
       </div>
       <div class="modal-body">
-        <button class="pf-btn" style="flex:0;min-width:0;margin-bottom:14px" onclick="renderProfileMain()"><span class="pf-btn-ext">←</span> Back</button>
+        <button class="ma-back" onclick="renderProfileMain()">← Back</button>
 
-        <div class="pf-section" style="margin-bottom:18px">
+        <div class="pf-section" style="margin-bottom:18px;gap:6px">
           <div class="pf-section-title">Change email</div>
           <input class="auth-input" id="ma-email" type="email" placeholder="New email" autocomplete="email" value="">
-          <div class="auth-error" id="ma-email-err"></div>
-          <div class="auth-note" id="ma-email-note"></div>
+          <div class="ma-msg auth-error" id="ma-email-err"></div>
+          <div class="ma-msg auth-note" id="ma-email-note"></div>
           <button class="pf-btn" id="ma-email-btn" style="justify-content:center" onclick="maChangeEmail()">Update email</button>
         </div>
 
-        <div class="pf-section">
+        <div class="pf-section" style="gap:6px">
           <div class="pf-section-title">Change password</div>
           <input class="auth-input" id="ma-pw" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password">
-          <input class="auth-input" id="ma-pw2" type="password" placeholder="Confirm new password" autocomplete="new-password" style="margin-top:8px">
-          <div class="auth-error" id="ma-pw-err"></div>
-          <div class="auth-note" id="ma-pw-note"></div>
+          <input class="auth-input" id="ma-pw2" type="password" placeholder="Confirm new password" autocomplete="new-password">
+          <div class="ma-msg auth-error" id="ma-pw-err"></div>
+          <div class="ma-msg auth-note" id="ma-pw-note"></div>
           <button class="pf-btn" id="ma-pw-btn" style="justify-content:center" onclick="maChangePassword()">Update password</button>
         </div>
       </div>`;
