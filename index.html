@@ -352,7 +352,8 @@ td.r{text-align:right}
 .score-fill{height:100%;border-radius:1px;transition:width .4s}
 
 /* SEARCH BAR */
-.search-wrap{position:relative;height:32px;flex-shrink:0}
+.search-wrap{position:relative;height:32px;flex:1 1 auto;min-width:0}
+#search-top-row.has-recents .search-wrap{flex:1 1 50%;max-width:50%}
 .search-input{width:100%;height:32px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:0 32px 0 36px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;transition:border-color .12s}
 .search-input:focus{border-color:var(--accent)}
 .search-input::placeholder{color:var(--text3)}
@@ -735,13 +736,13 @@ a{color:var(--accent);text-decoration:none}
 
   <main class="main">
     <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;margin:10px 12px 0;position:relative;z-index:100" id="search-top-row">
-      <div class="search-wrap" style="width:50%">
+      <div class="search-wrap">
         <span class="search-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
         <input class="search-input" id="search-input" type="text" placeholder="Search symbol or company name…" autocomplete="off">
         <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear" style="display:none">&#xd7;</button>
         <div class="search-dropdown" id="search-dropdown"></div>
       </div>
-      <div style="display:flex;align-items:center;gap:5px;flex:1;overflow:hidden;min-width:0" id="recents-row">
+      <div style="display:flex;align-items:center;gap:5px;flex:0 1 auto;overflow:hidden;min-width:0" id="recents-row">
         <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);white-space:nowrap;flex-shrink:0" id="recents-label" hidden>Recent</span>
       </div>
     </div>
@@ -2453,12 +2454,20 @@ function addRecent(symbol) {
 function renderRecents() {
   const row = document.getElementById('recents-row');
   const label = document.getElementById('recents-label');
-  if (!recentSymbols.length) { label.hidden = true; return; }
-  label.hidden = false;
-  // Remove old buttons
-  row.querySelectorAll('.recent-btn').forEach(b => b.remove());
   const topRow = document.getElementById('search-top-row');
-  for (const sym of recentSymbols) {
+  // Remove old buttons first so the empty/▸full state is recomputed cleanly.
+  row.querySelectorAll('.recent-btn').forEach(b => b.remove());
+  if (!recentSymbols.length) {
+    label.hidden = true;
+    topRow.classList.remove('has-recents');   // search bar stretches full width
+    return;
+  }
+  // On phones, show only the single most-recent search.
+  const isMobile = window.matchMedia('(max-width:640px)').matches;
+  const syms = isMobile ? recentSymbols.slice(0, 1) : recentSymbols;
+  label.hidden = false;
+  topRow.classList.add('has-recents');
+  for (const sym of syms) {
     const btn = document.createElement('button');
     btn.className = 'recent-btn';
     btn.textContent = sym;
