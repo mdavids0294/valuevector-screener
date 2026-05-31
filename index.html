@@ -153,8 +153,9 @@ th.wl-cell{width:22px}
   .sidebar.open{transform:translateX(0)}
   .main{grid-column:1 / -1}
   /* Header can shrink so nothing clips off the right edge */
-  header{padding:14px 18px;gap:10px}
-  .header-right{gap:10px}
+  header{padding:14px 18px;gap:12px;justify-content:flex-start}
+  .menu-toggle{margin-right:0}
+  .header-right{gap:10px;margin-left:auto}
   .logo-tag{display:none}
   /* Watchlist banner: let title shrink, keep the back button reachable */
   .wl-banner-title{min-width:0;flex-shrink:1}
@@ -173,6 +174,12 @@ th.wl-cell{width:22px}
   .stats{flex-wrap:wrap}
   .stat{flex:1 1 33%;min-width:33%;border-bottom:0.5px solid var(--border)}
   .stat:nth-child(n+4){border-bottom:none}
+}
+
+/* ===== RESPONSIVE: tightest — collapse logo to just the V² mark ===== */
+@media (max-width:560px){
+  .logo-divider,.logo-wordmark{display:none}
+  .logo-v2{padding-right:0}
 }
 
 /* SIDEBAR */
@@ -269,9 +276,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .stat-val.amber{color:var(--amber)}
 
 /* TABLE */
-.table-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:auto}
-.table-wrap::-webkit-scrollbar{width:3px;height:3px}
-.table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.table-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--text3) transparent}
+.table-wrap::-webkit-scrollbar{width:8px;height:12px}
+.table-wrap::-webkit-scrollbar-track{background:var(--bg2)}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--text3);border-radius:6px;border:2px solid var(--bg2)}
+.table-wrap::-webkit-scrollbar-thumb:hover{background:var(--text2)}
 table{width:100%;border-collapse:collapse;table-layout:auto;min-width:900px}
 thead{position:sticky;top:0;background:var(--bg);z-index:10}
 th{padding:9px 14px;text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:400;border-bottom:0.5px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
