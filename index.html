@@ -321,9 +321,19 @@ td.r{text-align:right}
 .sc-cell-v.suspect{color:var(--red)}
 .sc-cell-v.suspect::after{content:'⚠';font-size:8px;margin-left:3px;opacity:.7;vertical-align:super}
 
+.sheet-grabber{display:none}
+.sort-bar{display:none;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+.sort-bar-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);flex-shrink:0}
+.sort-select{flex:1;min-width:0;font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:7px 11px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='%237a8a76' stroke-width='1.2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.sort-select:focus{border-color:var(--accent)}
+.sort-dir{font-family:var(--mono);font-size:13px;color:var(--accent);background:var(--bg3);border:0.5px solid rgba(200,245,154,0.3);border-radius:6px;padding:7px 11px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:5px;transition:background .12s}
+.sort-dir:hover{background:rgba(200,245,154,0.08)}
+.sort-dir .sort-dir-txt{font-size:9px;color:var(--text2)}
+
 @media (max-width:640px){
   .table-wrap table{display:none}        /* hide the table; cards take over */
   .card-list{display:flex}
+  .sort-bar{display:flex}
   /* Watchlist banner → proper title bar */
   .wl-banner{margin:0;border-radius:0;border-left:none;border-right:none;border-top:none;padding:11px 14px;background:transparent}
   .wl-banner-title{font-size:12px}
@@ -335,7 +345,7 @@ td.r{text-align:right}
   .modal-backdrop.visible .modal-box{transform:translateY(0)}
   .sheet-grabber{display:block;width:36px;height:4px;border-radius:2px;background:var(--text3);margin:9px auto 2px}
 }
-.sheet-grabber{display:none}
+
 .score-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
 .score-num{font-family:var(--mono);font-size:11px;font-weight:500;min-width:26px;text-align:right}
 .score-track{width:44px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
@@ -748,6 +758,21 @@ a{color:var(--accent);text-decoration:none}
       <button class="wl-banner-back" onclick="exitWatchlist()">←<span class="wl-back-long"> Back to screener</span></button>
     </div>
 
+    <div class="sort-bar" id="sort-bar">
+      <span class="sort-bar-label">Sort</span>
+      <select class="sort-select" id="sort-select" onchange="sortBy(this.value)">
+        <option value="name">Name</option>
+        <option value="price">Price</option>
+        <option value="pe">P/E</option>
+        <option value="pb">P/B</option>
+        <option value="gm">Gross margin</option>
+        <option value="fcfy">FCF yield</option>
+        <option value="ev">EV/EBITDA</option>
+        <option value="de">D/E</option>
+      </select>
+      <button class="sort-dir" id="sort-dir" onclick="toggleSortDir()" aria-label="Toggle sort direction"><span id="sort-dir-arrow">↑</span><span class="sort-dir-txt" id="sort-dir-txt">ASC</span></button>
+    </div>
+
     <div class="table-wrap" id="table-wrap">
       <div class="state">
         <div style="font-family:var(--serif);font-size:28px;font-style:italic;color:var(--text3);margin-bottom:4px">Find the hidden.</div>
@@ -1095,6 +1120,7 @@ function setStatus(text, state) {
 }
 
 let sortCol = 'pe', sortDir = 1, lastResults = [];
+syncSortBar();
 // Watchlist: in-memory Set of saved symbols (synchronous checks for row stars),
 // plus a flag so renderTable knows whether to draw the star column. wlViewing is
 // true while the dedicated watchlist view is on screen (so the star column shows
@@ -1388,6 +1414,25 @@ function sortBy(col) {
   sortDir = sortCol === col ? sortDir * -1 : (['score','gm','nm','fcfy','roe'].includes(col) ? -1 : 1);
   sortCol = col;
   renderTable(lastResults);
+  syncSortBar();
+}
+
+// Mobile sort bar ↔ sort state. The dropdown picks the column; the button flips
+// direction. Both reuse sortBy/renderTable so behavior matches the desktop
+// column-header clicks exactly. syncSortBar reflects current state back into the
+// controls (also keeps them right after a desktop-header sort).
+function toggleSortDir() {
+  sortDir = sortDir * -1;
+  renderTable(lastResults);
+  syncSortBar();
+}
+function syncSortBar() {
+  const sel = document.getElementById('sort-select');
+  const arrow = document.getElementById('sort-dir-arrow');
+  const txt = document.getElementById('sort-dir-txt');
+  if (sel && [...sel.options].some(o => o.value === sortCol)) sel.value = sortCol;
+  if (arrow) arrow.textContent = sortDir === -1 ? '↓' : '↑';
+  if (txt) txt.textContent = sortDir === -1 ? 'DESC' : 'ASC';
 }
 
 function updateStats(data) {
@@ -3211,6 +3256,7 @@ window.commitRenamePreset = commitRenamePreset;
 window.deleteProfilePreset = deleteProfilePreset;
 window.renderProfilePresets = renderProfilePresets;
 window.sortBy = sortBy;
+window.toggleSortDir = toggleSortDir;
 window.savePreset = savePreset;
 window.applyPreset = applyPreset;
 window.deletePreset = deletePreset;
