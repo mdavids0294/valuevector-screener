@@ -330,10 +330,14 @@ td.r{text-align:right}
 .sort-dir:hover{background:rgba(200,245,154,0.08)}
 .sort-dir .sort-dir-txt{font-size:9px;color:var(--text2)}
 
+.search-wrap{position:relative;height:32px;flex:1 1 auto;min-width:0}
+#search-top-row.has-recents .search-wrap{flex:1 1 50%;max-width:50%}
+
 @media (max-width:640px){
   .table-wrap table{display:none}        /* hide the table; cards take over */
   .card-list{display:flex}
   .sort-bar{display:flex}
+  #search-top-row.has-recents .search-wrap{flex:1 1 auto;max-width:none}  /* fill space; chip sits flush right */
   /* Watchlist banner → proper title bar */
   .wl-banner{margin:0;border-radius:0;border-left:none;border-right:none;border-top:none;padding:11px 14px;background:transparent}
   .wl-banner-title{font-size:12px}
@@ -352,7 +356,6 @@ td.r{text-align:right}
 .score-fill{height:100%;border-radius:1px;transition:width .4s}
 
 /* SEARCH BAR */
-.search-wrap{position:relative;height:32px;flex:1 1 auto;min-width:0}
 .search-input{width:100%;height:32px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:0 32px 0 36px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;transition:border-color .12s}
 .search-input:focus{border-color:var(--accent)}
 .search-input::placeholder{color:var(--text3)}
