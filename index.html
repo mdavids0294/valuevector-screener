@@ -330,14 +330,14 @@ td.r{text-align:right}
 .sort-dir:hover{background:rgba(200,245,154,0.08)}
 .sort-dir .sort-dir-txt{font-size:9px;color:var(--text2)}
 
-.search-wrap{position:relative;height:32px;flex:1 1 auto;min-width:0}
-#search-top-row.has-recents .search-wrap{flex:1 1 50%;max-width:50%}
+.search-wrap{position:relative;height:32px;flex:1 1 50%;max-width:50%;min-width:0}
 
 @media (max-width:640px){
   .table-wrap table{display:none}        /* hide the table; cards take over */
   .card-list{display:flex}
   .sort-bar{display:flex}
-  #search-top-row.has-recents .search-wrap{flex:1 1 auto;max-width:none}  /* fill space; chip sits flush right */
+  .search-wrap{flex:1 1 auto;max-width:none}                                /* mobile: full width when empty */
+  #search-top-row.has-recents .search-wrap{flex:1 1 auto;max-width:none}    /* and fill space with a recent, chip flush right */
   /* Watchlist banner → proper title bar */
   .wl-banner{margin:0;border-radius:0;border-left:none;border-right:none;border-top:none;padding:11px 14px;background:transparent}
   .wl-banner-title{font-size:12px}
