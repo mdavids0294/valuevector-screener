@@ -38,6 +38,11 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .logo-name{font-family:var(--serif);font-size:18px;font-style:italic;font-weight:400;color:var(--text);letter-spacing:-.01em;line-height:1}
 .logo-tag{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;line-height:1}
 .header-right{display:flex;align-items:center;gap:16px}
+.menu-toggle{display:none;align-items:center;justify-content:center;width:34px;height:34px;margin-right:14px;background:transparent;border:0.5px solid var(--border2);border-radius:6px;color:var(--text2);cursor:pointer;flex-shrink:0;transition:all .15s}
+.menu-toggle:hover{background:var(--bg3);color:var(--text)}
+.menu-toggle svg{pointer-events:none}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:140;opacity:0;transition:opacity .2s}
+.sidebar-backdrop.show{display:block;opacity:1}
 .status-wrap{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3)}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
 .dot.live{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
@@ -133,6 +138,42 @@ th.wl-cell{width:22px}
 
 /* LAYOUT */
 .layout{flex:1;min-height:0;display:grid;grid-template-columns:280px 1fr}
+
+/* ===== RESPONSIVE: tablet & small desktop (off-canvas sidebar) ===== */
+@media (max-width:1024px){
+  .menu-toggle{display:inline-flex}
+  /* Single-column layout; sidebar lifts out of the grid and slides over the content */
+  .layout{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;width:300px;max-width:86vw;
+    z-index:150;background:var(--bg);
+    transform:translateX(-100%);transition:transform .22s ease;
+    box-shadow:0 0 40px rgba(0,0,0,0.5);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .main{grid-column:1 / -1}
+  /* Header can shrink so nothing clips off the right edge */
+  header{padding:14px 18px;gap:10px}
+  .header-right{gap:10px}
+  .logo-tag{display:none}
+  /* Watchlist banner: let title shrink, keep the back button reachable */
+  .wl-banner-title{min-width:0;flex-shrink:1}
+  .wl-banner-back{flex-shrink:0;white-space:nowrap}
+}
+
+/* ===== RESPONSIVE: tablet portrait ===== */
+@media (max-width:768px){
+  header{padding:12px 14px}
+  .logo-v2{height:24px;padding-right:12px}
+  .logo-divider{height:26px;margin-right:12px}
+  .logo-name{font-size:16px}
+  .market-status{display:none}            /* free up header room; status dot stays */
+  .btn-primary{padding:8px 14px}
+  /* Stats bar: wrap to two rows instead of crushing five across */
+  .stats{flex-wrap:wrap}
+  .stat{flex:1 1 33%;min-width:33%;border-bottom:0.5px solid var(--border)}
+  .stat:nth-child(n+4){border-bottom:none}
+}
 
 /* SIDEBAR */
 .sidebar{min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;border-right:0.5px solid var(--border);padding:16px 14px;display:flex;flex-direction:column;gap:5px}
@@ -384,6 +425,9 @@ a{color:var(--accent);text-decoration:none}
 <body>
 
 <header>
+  <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle filters">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="2" y1="5" x2="16" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+  </button>
   <div class="logo">
     <svg class="logo-v2" viewBox="4.5 6.5 23 19" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="V squared"><path d="M11.04 21.12L16.56 12.63Q17.19 11.69 17.20 11.14Q17.21 10.60 16.75 10.35Q16.29 10.09 15.45 10.05L15.45 10.05L15.55 9.63Q15.85 9.65 16.34 9.66Q16.84 9.67 17.38 9.68Q17.93 9.69 18.30 9.69L18.30 9.69Q18.79 9.69 19.17 9.67Q19.54 9.65 19.88 9.63L19.88 9.63L19.78 10.05Q19.36 10.16 18.98 10.38Q18.60 10.60 18.19 11.05Q17.78 11.50 17.28 12.28L17.28 12.28L9.25 24.61Q8.98 24.58 8.72 24.58Q8.46 24.58 8.18 24.61L8.18 24.61L6.52 11.40Q6.44 10.64 6.08 10.36Q5.73 10.07 5.43 10.05L5.43 10.05L5.54 9.63Q6.08 9.65 6.92 9.67Q7.76 9.69 8.56 9.69L8.56 9.69Q9.57 9.69 10.40 9.67Q11.23 9.65 11.77 9.63L11.77 9.63L11.67 10.05Q11.00 10.07 10.60 10.21Q10.20 10.35 10.05 10.70Q9.91 11.06 9.99 11.82L9.99 11.82L11.04 21.12Z" fill="#c8f59a"></path><path d="M25.00 7.16L25.00 7.16Q25.82 7.16 26.30 7.47Q26.77 7.78 26.77 8.31L26.77 8.31Q26.77 8.73 26.49 9.12Q26.22 9.50 25.78 9.85Q25.35 10.20 24.85 10.50Q24.35 10.81 23.89 11.08Q23.44 11.35 23.12 11.58L23.12 11.58Q23.39 11.58 23.73 11.66Q24.06 11.73 24.43 11.81Q24.80 11.89 25.14 11.89L25.14 11.89Q25.56 11.89 25.82 11.76Q26.08 11.63 26.08 11.36L26.08 11.36Q26.08 11.03 25.68 10.82L25.68 10.82L25.80 10.68Q26.12 10.84 26.26 11.07Q26.41 11.29 26.41 11.61L26.41 11.61Q26.41 11.97 26.24 12.30Q26.06 12.64 25.69 12.85Q25.32 13.07 24.70 13.07L24.70 13.07Q24.35 13.07 24.01 12.99Q23.67 12.91 23.32 12.83Q22.96 12.75 22.55 12.74L22.55 12.74Q22.13 12.71 21.85 12.79Q21.57 12.86 21.23 13L21.23 13L21.28 12.77Q21.51 12.58 21.89 12.31Q22.26 12.04 22.70 11.70Q23.15 11.36 23.59 10.97Q24.03 10.58 24.40 10.15Q24.78 9.72 25.00 9.27Q25.22 8.82 25.22 8.36L25.22 8.36Q25.22 7.92 25.00 7.69Q24.78 7.47 24.38 7.47L24.38 7.47Q24.06 7.47 23.73 7.61Q23.39 7.75 23.11 8.00Q22.83 8.25 22.66 8.55Q22.49 8.85 22.49 9.17L22.49 9.17Q22.49 9.44 22.64 9.57Q22.79 9.70 23.13 9.70L23.13 9.70Q23.44 9.70 23.66 9.58Q23.89 9.47 24.14 9.25L24.14 9.25L24.27 9.40Q23.96 9.69 23.64 9.81Q23.33 9.93 23.05 9.93L23.05 9.93Q22.88 9.93 22.68 9.87Q22.49 9.81 22.36 9.65Q22.23 9.49 22.23 9.18L22.23 9.18Q22.23 8.82 22.43 8.46Q22.64 8.11 23.01 7.81Q23.38 7.51 23.89 7.33Q24.39 7.16 25.00 7.16Z" fill="#9ed870"></path></svg>
     <div class="logo-divider"></div>
@@ -442,7 +486,8 @@ a{color:var(--accent);text-decoration:none}
 <div class="modal-backdrop" id="profile-backdrop"></div>
 
 <div class="layout">
-  <aside class="sidebar">
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
 
     <!-- Profile -->
     <button class="profile-btn" onclick="openProfile()">
@@ -2491,6 +2536,7 @@ function renderModalSection(section, c) {
 function openModal(symbol) {
   const c = lastResults.find(r => r.symbol === symbol);
   if (!c) return;
+  closeSidebar();
   addRecent(symbol);
   const r = c.ratios;
   const lp = c.live;
@@ -3075,6 +3121,22 @@ window.openModal = openModal;
 window.openWatchlist = openWatchlist;
 window.exitWatchlist = exitWatchlist;
 window.toggleWatch = toggleWatch;
+
+// Off-canvas sidebar (≤1024px). Slides the filter panel in/out over the table.
+function toggleSidebar(){
+  const sb = document.getElementById('sidebar');
+  if(sb.classList.contains('open')) closeSidebar(); else openSidebar();
+}
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-backdrop').classList.add('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
+window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
 window.closeModal = closeModal;
 window.resetFilters = resetFilters;
 window.resetSection = resetSection;
