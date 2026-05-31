@@ -300,6 +300,42 @@ td.r{text-align:right}
 .chg-dn{color:var(--red);font-family:var(--mono);font-size:10px}
 .chg-flat{color:var(--text3);font-family:var(--mono);font-size:10px}
 .price-cell{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+
+/* ===== MOBILE CARDS (≤640px) ===== */
+.card-list{display:none;flex-direction:column;gap:8px;padding:10px 12px 16px}
+.stock-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;transition:border-color .12s}
+.stock-card:active{border-color:var(--border2)}
+.sc-top{display:flex;align-items:flex-start;gap:10px}
+.sc-star{background:none;border:none;cursor:pointer;padding:0;font-size:17px;line-height:1;color:var(--text3);flex-shrink:0;margin-top:1px;font-family:var(--sans);transition:color .12s,transform .12s}
+.sc-star.on{color:var(--accent)}
+.sc-star:active{transform:scale(1.15)}
+.sc-id{flex:1;min-width:0}
+.sc-name{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-meta{font-family:var(--mono);font-size:10px;color:var(--text2);margin-top:3px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-px{text-align:right;flex-shrink:0}
+.sc-price{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text);line-height:1.1}
+.sc-chg{font-family:var(--mono);font-size:10px;margin-top:3px}
+.sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 6px;margin-top:13px;padding-top:12px;border-top:0.5px solid var(--border)}
+.sc-cell-l{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
+.sc-cell-v{font-family:var(--mono);font-size:13px;color:var(--text)}
+.sc-cell-v.suspect{color:var(--red)}
+.sc-cell-v.suspect::after{content:'⚠';font-size:8px;margin-left:3px;opacity:.7;vertical-align:super}
+
+@media (max-width:640px){
+  .table-wrap table{display:none}        /* hide the table; cards take over */
+  .card-list{display:flex}
+  /* Watchlist banner → proper title bar */
+  .wl-banner{margin:0;border-radius:0;border-left:none;border-right:none;border-top:none;padding:11px 14px;background:transparent}
+  .wl-banner-title{font-size:12px}
+  .wl-banner-back{font-size:16px;padding:2px 8px 2px 0;order:-1}   /* back arrow on the left */
+  .wl-banner-back .wl-back-long{display:none}                      /* hide "to screener" text, keep arrow */
+  /* Stock modal → bottom sheet */
+  .modal-backdrop{align-items:flex-end;padding:0}
+  .modal-box{max-width:100%;max-height:90vh;border-radius:16px 16px 0 0;border-left:none;border-right:none;border-bottom:none;transform:translateY(100%)}
+  .modal-backdrop.visible .modal-box{transform:translateY(0)}
+  .sheet-grabber{display:block;width:36px;height:4px;border-radius:2px;background:var(--text3);margin:9px auto 2px}
+}
+.sheet-grabber{display:none}
 .score-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
 .score-num{font-family:var(--mono);font-size:11px;font-weight:500;min-width:26px;text-align:right}
 .score-track{width:44px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
@@ -709,7 +745,7 @@ a{color:var(--accent);text-decoration:none}
 
     <div class="wl-banner" id="wl-banner">
       <span class="wl-banner-title"><span class="wl-star-ico">★</span>Viewing your watchlist<span class="wl-banner-count" id="wl-banner-count"></span></span>
-      <button class="wl-banner-back" onclick="exitWatchlist()">← Back to screener</button>
+      <button class="wl-banner-back" onclick="exitWatchlist()">←<span class="wl-back-long"> Back to screener</span></button>
     </div>
 
     <div class="table-wrap" id="table-wrap">
@@ -1294,7 +1330,58 @@ function renderTable(data) {
     </tr>`;
   }).join('');
 
-  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>` + renderCards(sorted);
+}
+
+// Build the mobile card list from the same sorted rows. CSS shows this only
+// ≤640px (the table is hidden there). Mirrors the table's formatting + the
+// 6 triage metrics: P/E, P/B, gross margin, FCF yield, EV/EBITDA, D/E.
+function renderCards(sorted) {
+  const cards = sorted.map(c => {
+    const r = c.ratios, lp = c.live;
+    const priceVal = lp?.price || c.price;
+    const priceFmt = priceVal ? '$' + priceVal.toFixed(2) : '—';
+    const chgPct = lp?.change_pct;
+    const chgCls = chgPct == null ? 'chg-flat' : chgPct > 0 ? 'chg-up' : chgPct < 0 ? 'chg-dn' : 'chg-flat';
+    const chgFmt = chgPct != null ? (chgPct > 0 ? '▲ ' : chgPct < 0 ? '▼ ' : '') + Math.abs(chgPct).toFixed(2) + '%' : '';
+    const mc   = fmtVal(lp?.market_cap || c.market_cap, 'mc');
+    const peV  = lp?.pe ?? r?.pe_ratio;
+    const pbV  = lp?.pb ?? r?.pb_ratio;
+    const pe   = peV > 0 && peV < 500 ? peV.toFixed(1)+'×' : '—';
+    const pb   = pbV > 0 ? pbV.toFixed(2)+'×' : '—';
+    const gm   = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
+    const fcfyV = lp?.fcf_yield ?? r?.fcf_yield;
+    const fcfSus = fcfSuspect(c);
+    const fcfy = fcfyV > 0 ? (fcfyV*100).toFixed(1)+'%' : '—';
+    const evV  = lp?.ev_ebitda ?? r?.ev_ebitda;
+    const ev   = evV > 0 ? evV.toFixed(1)+'×' : '—';
+    const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
+    const on   = isWatched(c.symbol);
+    const sector = (c.sector || '').trim();
+    const meta = c.symbol + (sector ? ' · ' + sector : '');
+    return `<div class="stock-card" onclick="openModal('${c.symbol}')">
+      <div class="sc-top">
+        <button class="sc-star${on?' on':''}" data-sym="${c.symbol}" aria-label="${on?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${on?'★':'☆'}</button>
+        <div class="sc-id">
+          <div class="sc-name">${(c.name||'').replace(/</g,'&lt;')}</div>
+          <div class="sc-meta">${meta.replace(/</g,'&lt;')}</div>
+        </div>
+        <div class="sc-px">
+          <div class="sc-price">${priceFmt}</div>
+          ${chgFmt ? `<div class="sc-chg ${chgCls}">${chgFmt}</div>` : ''}
+        </div>
+      </div>
+      <div class="sc-grid">
+        <div><div class="sc-cell-l">P/E</div><div class="sc-cell-v">${pe}</div></div>
+        <div><div class="sc-cell-l">P/B</div><div class="sc-cell-v">${pb}</div></div>
+        <div><div class="sc-cell-l">Gross mgn</div><div class="sc-cell-v">${gm}</div></div>
+        <div><div class="sc-cell-l">FCF yld</div><div class="sc-cell-v${fcfSus?' suspect':''}">${fcfy}</div></div>
+        <div><div class="sc-cell-l">EV/EBITDA</div><div class="sc-cell-v">${ev}</div></div>
+        <div><div class="sc-cell-l">D/E</div><div class="sc-cell-v">${de}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="card-list">${cards}</div>`;
 }
 
 function sortBy(col) {
@@ -2599,6 +2686,7 @@ function openModal(symbol) {
 
   document.getElementById('modal-backdrop').innerHTML = `
     <div class="modal-box" id="modal-box">
+      <div class="sheet-grabber" onclick="closeModal()"></div>
       <div class="modal-header">
         <div>
           <div class="modal-name-row">
