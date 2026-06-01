@@ -478,6 +478,66 @@ a{color:var(--accent);text-decoration:none}
 .tr-dim{color:var(--text3);text-align:right;font-size:9px}
 .trade-empty{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
 .trade-loading{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
+
+/* ── ONBOARDING SPOTLIGHT TOUR ─────────────────────────────────────────────── */
+/* Help (?) button — lives in header-right, opens the tour on demand. */
+.help-btn{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--mono);font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s;line-height:1;padding:0}
+.help-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--bg3)}
+
+/* Root container; hidden unless .active. Sits above everything (auth overlay is z 1000-ish; modal backdrops lower). */
+#tour-root{position:fixed;inset:0;z-index:4000;display:none;pointer-events:none}
+#tour-root.active{display:block}
+
+/* The dimmer is four rects around the cutout so the highlighted element stays
+   fully interactive-looking and bright. SVG mask would also work, but four
+   absolutely-positioned divs are simplest and animate smoothly. */
+.tour-mask{position:absolute;background:rgba(6,7,5,.72);pointer-events:auto;transition:all .28s cubic-bezier(.4,0,.2,1)}
+#tour-mask-top{top:0;left:0;right:0}
+#tour-mask-bottom{left:0;right:0;bottom:0}
+#tour-mask-left{left:0}
+#tour-mask-right{right:0}
+
+/* Glowing ring around the spotlighted element. */
+#tour-ring{position:absolute;border:1.5px solid var(--accent);border-radius:8px;box-shadow:0 0 0 3px rgba(200,245,154,.18),0 0 22px rgba(200,245,154,.30);pointer-events:none;transition:all .28s cubic-bezier(.4,0,.2,1);opacity:0}
+#tour-ring.show{opacity:1}
+/* During live scroll-follow, kill transitions so the ring/cutout track the
+   element instantly instead of lagging behind. */
+#tour-root.tracking #tour-ring,
+#tour-root.tracking .tour-mask,
+#tour-root.tracking #tour-card{transition:none !important}
+
+/* Tooltip card. */
+#tour-card{position:absolute;width:300px;max-width:calc(100vw - 28px);background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:16px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.6);pointer-events:auto;transition:top .28s cubic-bezier(.4,0,.2,1),left .28s cubic-bezier(.4,0,.2,1),opacity .2s;opacity:0}
+#tour-card.show{opacity:1}
+#tour-card.centered{transition:opacity .2s}
+.tour-step-count{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.tour-title{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--accent);line-height:1.15;margin-bottom:7px}
+.tour-body{font-family:var(--sans);font-size:13px;line-height:1.5;color:var(--text);margin-bottom:14px}
+.tour-body b{color:var(--accent2);font-weight:600}
+.tour-actions{display:flex;align-items:center;gap:8px}
+.tour-dots{display:flex;gap:5px;flex:1}
+.tour-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);transition:background .2s,transform .2s}
+.tour-dot.on{background:var(--accent);transform:scale(1.35)}
+.tour-btn{font-family:var(--mono);font-size:11px;padding:7px 13px;border-radius:7px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--text2);transition:border-color .15s,color .15s,background .15s;letter-spacing:.02em}
+.tour-btn:hover{border-color:var(--text2);color:var(--text)}
+.tour-btn-primary{background:var(--accent);border-color:var(--accent);color:#0a0b09;font-weight:600}
+.tour-btn-primary:hover{background:var(--accent2);border-color:var(--accent2);color:#0a0b09}
+.tour-skip{position:absolute;top:13px;right:14px;font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;letter-spacing:.04em;background:none;border:none;padding:2px 4px;transition:color .15s}
+.tour-skip:hover{color:var(--text2)}
+
+/* Pointer arrow on the card, set per-placement via data-place. */
+#tour-card::before{content:"";position:absolute;width:11px;height:11px;background:var(--bg2);border:0.5px solid var(--border);transform:rotate(45deg);display:none}
+#tour-card[data-place="bottom"]::before{display:block;top:-6.5px;left:var(--arrow-x,28px);border-right:none;border-bottom:none}
+#tour-card[data-place="top"]::before{display:block;bottom:-6.5px;left:var(--arrow-x,28px);border-left:none;border-top:none}
+#tour-card[data-place="right"]::before{display:block;left:-6.5px;top:var(--arrow-y,24px);border-right:none;border-top:none}
+#tour-card[data-place="left"]::before{display:block;right:-6.5px;top:var(--arrow-y,24px);border-left:none;border-bottom:none}
+#tour-card[data-place="center"]::before{display:none}
+
+@media (max-width:640px){
+  #tour-card{width:auto;left:14px !important;right:14px;max-width:none}
+  #tour-card::before{display:none !important}
+  .help-btn{width:26px;height:26px;font-size:13px}
+}
 </style>
 </head>
 <body>
@@ -503,9 +563,30 @@ a{color:var(--accent);text-decoration:none}
       <div class="dot" id="dot"></div>
       <span id="status-text">ready</span>
     </div>
+    <button class="help-btn" id="help-btn" onclick="startTour('manual')" aria-label="How it works" title="How it works">?</button>
     <button class="btn btn-primary" onclick="runScreen()" id="run-btn"><span class="run-btn-label">Run screen</span></button>
   </div>
 </header>
+
+<!-- ── ONBOARDING SPOTLIGHT TOUR ─────────────────────────────────────────── -->
+<div id="tour-root" aria-hidden="true">
+  <div class="tour-mask" id="tour-mask-top"></div>
+  <div class="tour-mask" id="tour-mask-bottom"></div>
+  <div class="tour-mask" id="tour-mask-left"></div>
+  <div class="tour-mask" id="tour-mask-right"></div>
+  <div id="tour-ring"></div>
+  <div id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <button class="tour-skip" id="tour-skip" onclick="endTour(true)">Skip tour</button>
+    <div class="tour-step-count" id="tour-step-count"></div>
+    <div class="tour-title" id="tour-title"></div>
+    <div class="tour-body" id="tour-body"></div>
+    <div class="tour-actions">
+      <div class="tour-dots" id="tour-dots"></div>
+      <button class="tour-btn" id="tour-back" onclick="tourPrev()">Back</button>
+      <button class="tour-btn tour-btn-primary" id="tour-next" onclick="tourNext()">Next</button>
+    </div>
+  </div>
+</div>
 
 <div class="session-overlay" id="session-overlay">
   <div class="auth-card">
@@ -1123,6 +1204,7 @@ function setStatus(text, state) {
 }
 
 let sortCol = 'pe', sortDir = 1, lastResults = [];
+let _tourIdx = 0, _tourActive = false, _tourReposITimer = null, _tourTargetEl = null;
 syncSortBar();
 // Watchlist: in-memory Set of saved symbols (synchronous checks for row stars),
 // plus a flag so renderTable knows whether to draw the star column. wlViewing is
@@ -2521,6 +2603,12 @@ async function bootAuth() {
         initAccount();
         loadPresets();
         loadWatchlist();
+        // Only auto-run the tour on a genuine sign-in / sign-up — NOT on a
+        // silent session restore (INITIAL_SESSION) or background token refresh.
+        // `SIGNED_IN` fires both when a user signs in and when sign-up auto-logs
+        // them in. The per-user `onboarded` flag still backstops it, so even a
+        // SIGNED_IN won't re-show the tour to someone who's already seen it.
+        if (event === 'SIGNED_IN') maybeAutoStartTour();
       } else {
         showAuth();
       }
@@ -2528,6 +2616,9 @@ async function bootAuth() {
   }
 
   // Initial paint based on whatever we resolved (or the dev mock on localhost).
+  // NOTE: deliberately NO maybeAutoStartTour() here — this path is the silent
+  // session restore for a returning, already-logged-in user. The tour must only
+  // appear after an actual sign-in / sign-up, handled by the SIGNED_IN event above.
   const u = getCurrentUser();
   if (u) {
     initAccount();
@@ -3294,6 +3385,561 @@ window.closeSidebar = closeSidebar;
 window.closeModal = closeModal;
 window.resetFilters = resetFilters;
 window.resetSection = resetSection;
+
+// ── ONBOARDING SPOTLIGHT TOUR ─────────────────────────────────────────────────
+// A step-by-step spotlight that dims the page and rings a real UI element while a
+// tooltip explains it. Auto-runs once for brand-new users (gated by the per-user
+// `onboarded` flag in the Supabase `profiles` table); the header "?" button
+// replays it any time. Targets are resolved live each step, so anything not in the
+// DOM yet (or hidden at the current breakpoint) is skipped gracefully.
+
+// step = { el:()=>Element|null, title, body, place, mobilePlace?, before?:fn, pad? }
+const TOUR_STEPS = [
+  // 1 — Intro
+  {
+    el: () => null, place: 'center',
+    title: 'Welcome to The Value Vector',
+    body: "A screener for finding <b>undervalued, undercovered</b> small- and mid-cap stocks — the corners of the market where lack of coverage creates mispricing. Here's a quick tour of how it works."
+  },
+  // 2 — Control panel (whole sidebar)
+  {
+    el: () => {
+      // On mobile the off-canvas sidebar fills the screen, so a ring around it
+      // reads as nothing. Open it (so it's the backdrop) but show a centered
+      // explainer card instead of a spotlight.
+      if (window.innerWidth <= 1024) { openSidebar(); return null; }
+      return document.getElementById('sidebar');
+    },
+    place: 'right', pad: 6,
+    title: 'Your control panel',
+    body: "Everything starts in this sidebar. You stack filters from top to bottom — first <b>who</b> you're screening, then the <b>financials</b> — to define exactly the kind of company you want. Let's walk through each group."
+  },
+  // 2.i — Discovery
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); return tourRevealSection('Market cap') || tourSection('Market cap') || document.querySelector('.group-label'); },
+    place: 'right',
+    title: 'Discovery — set the size',
+    body: "Start here. Set the <b>market-cap range</b> and minimum volume to narrow ~5,000 companies down to the size of business you're after. Small/midcaps sit toward the lower end."
+  },
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); return tourRevealSection('Sector & industry') || tourSection('Sector & industry'); },
+    place: 'right',
+    title: 'Discovery — pick sectors',
+    body: "Then choose which <b>sectors</b> to focus on — and optionally drill into specific <b>industries</b> within them. Leave everything unselected to include all sectors."
+  },
+  // 2.ii — Valuation
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); return tourRevealSection('Valuation'); },
+    place: 'right',
+    title: 'Valuation — how cheap',
+    body: "Screen on how cheaply a company trades relative to earnings, book value, sales, and cash flow. <b>Lower multiples</b> (or higher yields) are cheaper."
+  },
+  // 2.iii — Profitability
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); return tourRevealSection('Profitability'); },
+    place: 'right',
+    title: 'Profitability — how good',
+    body: "Filter on how efficiently a company turns revenue into profit. <b>Higher margins</b> and returns (ROE, ROA) point to a stronger, more durable business."
+  },
+  // 2.iv — Balance sheet
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); return tourRevealSection('Balance sheet'); },
+    place: 'right',
+    title: 'Balance sheet — how sound',
+    body: "Screen on financial health and risk — how much <b>debt</b> a company carries and whether it can cover its obligations. Lower leverage is safer."
+  },
+  // 3 — Run screen
+  {
+    el: () => document.getElementById('run-btn'), place: 'bottom',
+    before: () => { if (window.innerWidth <= 1024) closeSidebar(); },
+    title: 'Run the screen',
+    body: "With your filters set, hit <b>Run screen</b>. Matching companies fill the table. When results narrow to 200 or fewer, live prices and ratios refresh automatically."
+  },
+  // 4 — Stock lines in the data table
+  {
+    el: () => tourVisibleRow() || document.getElementById('table-wrap'),
+    place: 'top',
+    title: 'Read the results',
+    body: "Each line is a company, with its key valuation, profitability, and balance-sheet ratios side by side. <b>Click any column header to sort</b>, or click a row to dig in."
+  },
+  // 5 — Presets
+  // 6 — Saving to watchlist (the star)
+  {
+    el: () => {
+      if (window.innerWidth <= 1024) closeSidebar();
+      // Ensure there's a row to point at (re-seed if the table is empty for any
+      // reason), then target its star.
+      tourSeedDemoIfEmpty();
+      const star = tourVisibleStar();
+      if (star) return star;
+      // Fallback: the sidebar watchlist button — scroll it into view first so the
+      // ring never lands on the header.
+      if (window.innerWidth <= 1024) openSidebar();
+      const b = document.getElementById('wl-sidebar-btn');
+      if (b) try { b.scrollIntoView({ block: 'nearest' }); } catch(e){}
+      return b;
+    },
+    place: 'bottom', mobilePlace: 'bottom',
+    title: 'Save stocks with the ★',
+    body: "Tap the <b>★ star</b> on any stock to add it to your watchlist. It fills in to confirm — tap again to remove."
+  },
+  // 7 — Viewing the watchlist
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); const b = document.getElementById('wl-sidebar-btn'); if (b) try { b.scrollIntoView({ block: 'nearest' }); } catch(e){} return b; },
+    place: 'right',
+    title: 'Your watchlist, one click away',
+    body: "Open <b>Watchlist</b> to see everything you've starred in one view, with live prices — and it <b>syncs across your devices</b>."
+  },
+  // Presets
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); const s = tourSection('Presets') || document.getElementById('preset-list'); if (s) try { s.scrollIntoView({ block: 'nearest' }); } catch(e){} return s; },
+    place: 'right',
+    title: 'Save your screens as presets',
+    body: "Found a filter combination that works? <b>Save it as a preset</b> and reload it any time. Your presets are tied to your account."
+  },
+  // View profile
+  {
+    el: () => { if (window.innerWidth <= 1024) openSidebar(); const b = document.querySelector('.sidebar .profile-btn'); if (b) try { b.scrollIntoView({ block: 'nearest' }); } catch(e){} return b; },
+    place: 'right',
+    title: 'Your account',
+    body: "<b>View profile</b> is where you manage your account — change your email or password, and sign out."
+  },
+  // 9 — Enjoy your research
+  {
+    el: () => document.getElementById('help-btn'), place: 'bottom',
+    before: () => { if (window.innerWidth <= 1024) closeSidebar(); },
+    title: 'Enjoy your research',
+    body: "That's the whole tool. Replay this tour any time from the <b>?</b> button up here. Now go find something the market's missing."
+  }
+];
+
+function tourEls() {
+  return {
+    root: document.getElementById('tour-root'),
+    card: document.getElementById('tour-card'),
+    ring: document.getElementById('tour-ring'),
+    mT: document.getElementById('tour-mask-top'),
+    mB: document.getElementById('tour-mask-bottom'),
+    mL: document.getElementById('tour-mask-left'),
+    mR: document.getElementById('tour-mask-right')
+  };
+}
+
+// Find a sidebar .section by its title text (case-insensitive).
+// True if an element is actually rendered (not display:none and has a box).
+function tourIsVisible(el) {
+  return !!(el && el.offsetParent !== null && el.getBoundingClientRect().width > 0);
+}
+
+// The first VISIBLE result row: a mobile card (≤640px) or a table row (desktop).
+// The hidden one (table on mobile, cards on desktop) is display:none, so we pick
+// whichever is actually on screen.
+function tourVisibleRow() {
+  const card = document.querySelector('#table-wrap .stock-card');
+  if (tourIsVisible(card)) return card;
+  const row = document.querySelector('#table-wrap tbody tr');
+  if (tourIsVisible(row)) return row;
+  return null;
+}
+
+// The first VISIBLE watchlist star: mobile card uses .sc-star, table uses .wl-star.
+function tourVisibleStar() {
+  const cardStar = document.querySelector('#table-wrap .stock-card .sc-star');
+  if (tourIsVisible(cardStar)) return cardStar;
+  const tableStar = document.querySelector('#table-wrap tbody tr .wl-star');
+  if (tourIsVisible(tableStar)) return tableStar;
+  return null;
+}
+
+function tourSection(titleText) {
+  const t = titleText.toLowerCase();
+  const titles = document.querySelectorAll('.sidebar .section-title');
+  for (const el of titles) {
+    if ((el.textContent || '').trim().toLowerCase() === t) return el.closest('.section');
+  }
+  return null;
+}
+
+// Make sure a section is expanded and scrolled into the sidebar's view, then
+// return the .section element to spotlight. Used by the per-section steps so the
+// ring frames the whole open section rather than a collapsed 1-line header.
+function tourRevealSection(titleText) {
+  const sec = tourSection(titleText);
+  if (!sec) return null;
+  const body = sec.querySelector('.section-body');
+  if (body && body.classList.contains('collapsed')) {
+    const header = sec.querySelector('.section-header');
+    if (header) try { toggleSec(header); } catch(e){}
+  }
+  try { sec.scrollIntoView({ block: 'nearest' }); } catch(e){}
+  return sec;
+}
+
+// Brand-new users have an empty table; seed one representative row so the
+// "open a result" / "star" steps have something real to point at. Harmless if
+// a screen has already been run (we only seed when the table is empty).
+function tourSeedDemoIfEmpty() {
+  try {
+    const tw = document.getElementById('table-wrap');
+    if (!tw) return;
+    const hasRows = tw.querySelector('tbody tr, .stock-card');
+    if (hasRows) return;
+    if (typeof lastResults !== 'undefined' && typeof renderTable === 'function') {
+      if (!Array.isArray(lastResults) || lastResults.length === 0) {
+        lastResults = [{
+          symbol: 'DEMO', name: 'Example Company', sector: 'Industrials',
+          price: 42.10, market_cap: 8.4e8, avg_volume: 120000,
+          ratios: { pe_ratio: 13.2, pb_ratio: 1.4, gross_margin: 0.38,
+                    fcf_yield: 0.071, ev_ebitda: 7.9, debt_to_equity: 0.4 }
+        }];
+        try { renderTable(lastResults); } catch(e){}
+      }
+    }
+  } catch(e){}
+}
+
+function startTour(source) {
+  _tourIdx = 0;
+  _tourActive = true;
+  if (source === 'manual') closeModal && closeModal();
+  tourSeedDemoIfEmpty();
+  const { root } = tourEls();
+  root.classList.add('active');
+  root.setAttribute('aria-hidden', 'false');
+  document.addEventListener('keydown', tourKey);
+  window.addEventListener('resize', tourReposition);
+  // Track scrolling in ANY container (sidebar, table) so the spotlight stays
+  // glued to its element. Capture phase catches nested scrollers; rAF keeps it
+  // smooth. This is a geometry-only update — it does NOT re-run a step's
+  // before()/scroll-into-view logic, so it never fights the user's scroll.
+  window.addEventListener('scroll', tourOnScroll, true);
+  // Forward wheel to the spotlighted scroll container even when the cursor is
+  // over the dim mask. passive:false so preventDefault works.
+  window.addEventListener('wheel', tourOnWheel, { passive: false });
+  window.addEventListener('touchmove', tourOnTouchMove, { passive: false });
+  tourRender();
+}
+
+function tourKey(e) {
+  if (!_tourActive) return;
+  if (e.key === 'Escape') { e.preventDefault(); endTour(true); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); tourNext(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); tourPrev(); }
+}
+
+function tourNext() { if (_tourIdx >= TOUR_STEPS.length - 1) { endTour(false); } else { _tourIdx++; tourRender(); } }
+function tourPrev() { if (_tourIdx > 0) { _tourIdx--; tourRender(); } }
+
+function tourReposition() {
+  clearTimeout(_tourReposITimer);
+  _tourReposITimer = setTimeout(() => { if (_tourActive) tourRender(true); }, 80);
+}
+
+// Live scroll tracking — rAF-throttled, geometry only.
+let _tourScrollRAF = null, _tourScrollEndTimer = null;
+function tourOnScroll() {
+  if (!_tourActive) return;
+  // If a feature is locked in view, snap the container back — the user can't
+  // scroll it away. Reframe so the ring stays exact even if a pixel slipped.
+  if (_tourLockEl) {
+    tourEnforceLock();
+    if (_tourScrollRAF) return;
+    _tourScrollRAF = requestAnimationFrame(() => { _tourScrollRAF = null; if (_tourActive) tourReframe(); });
+    return;
+  }
+  // Unlocked steps (e.g. centered explainer, header targets): keep the old
+  // behavior of letting the ring track any page scroll smoothly.
+  const root = document.getElementById('tour-root');
+  if (root) root.classList.add('tracking');
+  clearTimeout(_tourScrollEndTimer);
+  _tourScrollEndTimer = setTimeout(() => { if (root) root.classList.remove('tracking'); }, 120);
+  if (_tourScrollRAF) return;
+  _tourScrollRAF = requestAnimationFrame(() => {
+    _tourScrollRAF = null;
+    if (_tourActive) tourReframe();
+  });
+}
+
+// Nearest scrollable ancestor of an element (the container that actually scrolls).
+function tourScrollParent(el) {
+  let n = el;
+  while (n && n !== document.body) {
+    const s = getComputedStyle(n);
+    if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight) return n;
+    n = n.parentElement;
+  }
+  return null;
+}
+
+// The dim mask has pointer-events:auto (to absorb clicks), which also swallows
+// wheel events everywhere except the cutout — so scrolling only worked when the
+// cursor was over the highlighted element. Forward wheel delta to the spotlighted
+// element's scroll container regardless of cursor position, so scrolling works
+// anywhere on screen during a step that targets a scrollable area.
+// When a step highlights an element inside a scroll container, we LOCK that
+// container at the position where the feature is in view, so the user can't
+// scroll the highlighted feature away. We remember the locked element + its
+// scrollTop and snap it back if anything tries to move it.
+let _tourLockEl = null, _tourLockTop = 0;
+
+function tourLockScroll(el) {
+  const sp = el ? tourScrollParent(el) : null;
+  _tourLockEl = sp;
+  _tourLockTop = sp ? sp.scrollTop : 0;
+}
+
+// Block wheel/touch scrolling entirely while a feature is locked.
+function tourOnWheel(e) {
+  if (!_tourActive) return;
+  if (_tourLockEl) {
+    e.preventDefault();
+    // Snap back in case any momentum slipped through.
+    _tourLockEl.scrollTop = _tourLockTop;
+  }
+}
+
+// Mobile: block touch-scroll while a feature is locked.
+function tourOnTouchMove(e) {
+  if (_tourActive && _tourLockEl) { e.preventDefault(); _tourLockEl.scrollTop = _tourLockTop; }
+}
+
+// If the container scrolls for any other reason (keyboard, programmatic, focus),
+// snap it back to the locked position.
+function tourEnforceLock() {
+  if (_tourActive && _tourLockEl && _tourLockEl.scrollTop !== _tourLockTop) {
+    _tourLockEl.scrollTop = _tourLockTop;
+  }
+}
+
+function tourRender(isResize) {
+  const step = TOUR_STEPS[_tourIdx];
+  if (!step) return;
+  const { card, ring, mT, mB, mL, mR } = tourEls();
+
+  // Release any prior step's scroll lock BEFORE resolving this step's target, so
+  // its el() can scrollIntoView freely (a stale lock would snap it back and the
+  // ring would mis-position on the header). The lock is re-applied below.
+  if (!isResize) _tourLockEl = null;
+
+  if (step.before && !isResize) { try { step.before(); } catch(e){} }
+
+  // Resolve the target (may be null → centered explainer).
+  let el = null;
+  try { el = step.el(); } catch(e){ el = null; }
+  // If a targeted step's element isn't visible, fall back to a centered card.
+  const visible = el && el.offsetParent !== null && el.getBoundingClientRect().width > 0;
+
+  // Header text + controls.
+  document.getElementById('tour-step-count').textContent = `Step ${_tourIdx + 1} of ${TOUR_STEPS.length}`;
+  document.getElementById('tour-title').textContent = step.title;
+  document.getElementById('tour-body').innerHTML = step.body;
+  document.getElementById('tour-back').style.visibility = _tourIdx === 0 ? 'hidden' : 'visible';
+  document.getElementById('tour-next').textContent = _tourIdx === TOUR_STEPS.length - 1 ? 'Done' : 'Next';
+  const dots = TOUR_STEPS.map((_, i) => `<span class="tour-dot${i === _tourIdx ? ' on' : ''}"></span>`).join('');
+  document.getElementById('tour-dots').innerHTML = dots;
+
+  // Remember what we're framing so scroll-tracking can re-read it live.
+  _tourTargetEl = (visible && step.place !== 'center') ? el : null;
+
+  if (!_tourTargetEl) {
+    // Centered explainer: no lock, ring hidden, full dim, card centered.
+    _tourLockEl = null;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    ring.classList.remove('show');
+    mT.style.top = '0'; mT.style.height = vh + 'px'; mT.style.left = '0'; mT.style.width = vw + 'px';
+    mB.style.height = '0'; mL.style.width = '0'; mR.style.width = '0';
+    card.setAttribute('data-place', 'center');
+    requestAnimationFrame(() => {
+      const cw = card.offsetWidth, ch = card.offsetHeight;
+      card.style.left = Math.max(14, (vw - cw) / 2) + 'px';
+      card.style.top = Math.max(14, (vh - ch) / 2) + 'px';
+      card.classList.add('show');
+    });
+    return;
+  }
+
+  // Safety net: if the resolved target ended up (partly) hidden behind the
+  // header — e.g. a sidebar button that scrolled up — bring it fully into view
+  // before we lock and frame it, so the ring never lands on the header.
+  try {
+    const hdr = document.querySelector('header');
+    const hb = hdr ? hdr.getBoundingClientRect().bottom : 0;
+    const tr = _tourTargetEl.getBoundingClientRect();
+    if (tr.top < hb + 4 || tr.bottom > window.innerHeight - 4) {
+      _tourTargetEl.scrollIntoView({ block: 'center' });
+    }
+  } catch(e){}
+
+  // Lock the target's scroll container at its current position so the user can't
+  // scroll the highlighted feature out of view. The step's el() already scrolled
+  // it into view, so we pin it right here.
+  tourLockScroll(_tourTargetEl);
+  tourFrameElement(_tourTargetEl, step, true);
+}
+
+// Geometry-only: position ring + mask cutout + card around `el` for `step`.
+// `animateCard` = whether the card should (re)appear with its show transition;
+// during live scroll we keep it shown and just move it.
+function tourFrameElement(el, step, animateCard) {
+  const { card, ring, mT, mB, mL, mR } = tourEls();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const mobile = vw <= 640;
+
+  // Spotlight a real element.
+  const pad = step.pad != null ? step.pad : 8;
+  const r = el.getBoundingClientRect();
+  let x = Math.max(0, r.left - pad), y = Math.max(0, r.top - pad);
+  let w = Math.min(vw - x, r.width + pad * 2), h = Math.min(vh - y, r.height + pad * 2);
+
+  const ringVisible = h > 1;
+
+  // Four masks framing the cutout.
+  mT.style.top = '0'; mT.style.left = '0'; mT.style.width = vw + 'px'; mT.style.height = y + 'px';
+  mB.style.left = '0'; mB.style.width = vw + 'px'; mB.style.top = (y + h) + 'px'; mB.style.height = Math.max(0, vh - (y + h)) + 'px';
+  mL.style.top = y + 'px'; mL.style.height = h + 'px'; mL.style.left = '0'; mL.style.width = x + 'px';
+  mR.style.top = y + 'px'; mR.style.height = h + 'px'; mR.style.left = (x + w) + 'px'; mR.style.width = Math.max(0, vw - (x + w)) + 'px';
+
+  ring.style.left = x + 'px'; ring.style.top = y + 'px';
+  ring.style.width = w + 'px'; ring.style.height = h + 'px';
+  if (ringVisible) ring.classList.add('show'); else ring.classList.remove('show');
+
+  // Place the card. On mobile it's pinned left/right by CSS; we only set top.
+  let place = (mobile && step.mobilePlace) ? step.mobilePlace : step.place;
+  card.classList.remove('centered');
+  card.setAttribute('data-place', place);
+
+  const position = () => {
+    const cw = card.offsetWidth, ch = card.offsetHeight, gap = 14;
+    let cx, cy;
+    if (mobile) {
+      // Card spans the width via CSS; choose above or below the cutout.
+      if (y + h + gap + ch < vh) cy = y + h + gap;
+      else cy = Math.max(14, y - gap - ch);
+      card.setAttribute('data-place', (y + h + gap + ch < vh) ? 'bottom' : 'top');
+      card.style.top = cy + 'px';
+      card.classList.add('show');
+      return;
+    }
+    if (place === 'bottom') { cx = r.left; cy = y + h + gap; }
+    else if (place === 'top') { cx = r.left; cy = y - gap - ch; }
+    else if (place === 'right') { cx = x + w + gap; cy = r.top; }
+    else if (place === 'left') { cx = x - gap - cw; cy = r.top; }
+    else { cx = r.left; cy = y + h + gap; }
+
+    // Clamp to viewport.
+    cx = Math.min(Math.max(14, cx), vw - cw - 14);
+    cy = Math.min(Math.max(14, cy), vh - ch - 14);
+
+    // Arrow offset: point at the element's center along the relevant axis.
+    if (place === 'top' || place === 'bottom') {
+      const ax = Math.min(Math.max(16, (r.left + r.width / 2) - cx - 5.5), cw - 24);
+      card.style.setProperty('--arrow-x', ax + 'px');
+    } else {
+      const ay = Math.min(Math.max(16, (r.top + r.height / 2) - cy - 5.5), ch - 24);
+      card.style.setProperty('--arrow-y', ay + 'px');
+    }
+    card.style.left = cx + 'px';
+    card.style.top = cy + 'px';
+    card.classList.add('show');
+  };
+
+  if (animateCard) requestAnimationFrame(position);
+  else position();
+}
+
+// Re-frame the current target using its CURRENT position (called on scroll).
+// Does not re-run before()/scroll logic — pure geometry follow.
+function tourReframe() {
+  if (!_tourActive || !_tourTargetEl) return;
+  const step = TOUR_STEPS[_tourIdx];
+  if (!step) return;
+  // If the element scrolled out of the DOM/visibility, leave the last frame in place.
+  if (_tourTargetEl.offsetParent === null) return;
+  tourFrameElement(_tourTargetEl, step, false);
+}
+
+// Clear the demo seed row if we added one (only if the user never ran a real screen).
+function tourClearDemo() {
+  try {
+    if (typeof lastResults !== 'undefined' && Array.isArray(lastResults) &&
+        lastResults.length === 1 && lastResults[0] && lastResults[0].symbol === 'DEMO') {
+      lastResults = [];
+      // Restore the original empty-state placeholder.
+      const tw = document.getElementById('table-wrap');
+      if (tw) {
+        tw.innerHTML = '<div class="state"><div style="font-family:var(--serif);font-size:28px;font-style:italic;color:var(--text3);margin-bottom:4px">Find the hidden.</div><p>Adjust your filters and hit Run screen</p><small>Powered by Supabase · ~5,000 US companies</small></div>';
+      }
+    }
+  } catch(e){}
+}
+
+function endTour(skipped) {
+  _tourActive = false;
+  const { root, card, ring } = tourEls();
+  card.classList.remove('show');
+  ring.classList.remove('show');
+  root.classList.remove('active');
+  root.setAttribute('aria-hidden', 'true');
+  document.removeEventListener('keydown', tourKey);
+  window.removeEventListener('resize', tourReposition);
+  window.removeEventListener('scroll', tourOnScroll, true);
+  window.removeEventListener('wheel', tourOnWheel, { passive: false });
+  window.removeEventListener('touchmove', tourOnTouchMove, { passive: false });
+  _tourTargetEl = null;
+  _tourLockEl = null;
+  if (window.innerWidth <= 1024) closeSidebar();
+  tourClearDemo();
+  markOnboarded(); // persist so it won't auto-run again
+}
+
+// ── Persistence: per-user `onboarded` flag in Supabase `profiles` ─────────────
+// Auto-run the tour the first time a real session resolves with no flag set.
+async function maybeAutoStartTour() {
+  // Never auto-run on localhost dev mock, or if a tour is already up.
+  if (_tourActive) return;
+  const u = getCurrentUser && getCurrentUser();
+  if (!u) return;
+  const uid = currentUserId && currentUserId();
+  if (!uid) return;
+
+  // localhost: skip the network, don't auto-run (keeps dev quiet).
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?select=onboarded&id=eq.${uid}`,
+      { headers: presetHeaders() }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const done = rows && rows[0] && rows[0].onboarded === true;
+    if (!done) {
+      // Small delay so the screener has painted before we spotlight it.
+      setTimeout(() => { if (!_tourActive) startTour('auto'); }, 650);
+    }
+  } catch(e){ /* network/RLS issue: silently skip auto-tour */ }
+}
+
+// Upsert onboarded=true for the current user.
+async function markOnboarded() {
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+  const uid = currentUserId && currentUserId();
+  const email = currentUserEmail && currentUserEmail();
+  if (!uid) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+      method: 'POST',
+      headers: presetHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify({ id: uid, user_email: email || null, onboarded: true })
+    });
+  } catch(e){ /* best-effort */ }
+}
+
+window.startTour = startTour;
+window.tourNext = tourNext;
+window.tourPrev = tourPrev;
+window.endTour = endTour;
+window.maybeAutoStartTour = maybeAutoStartTour;
 
 
 }); // end DOMContentLoaded
