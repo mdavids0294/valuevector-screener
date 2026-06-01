@@ -383,6 +383,8 @@ td.r{text-align:right}
 
 /* FOOTER */
 .footer{flex-shrink:0;padding:8px 18px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.footer-link{color:var(--text2);text-decoration:none;transition:color .15s}
+.footer-link:hover{color:var(--accent)}
 .footer-text{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.06em}
 a{color:var(--accent);text-decoration:none}
 
@@ -868,6 +870,7 @@ a{color:var(--accent);text-decoration:none}
 
     <div class="footer">
       <span class="footer-text">thevaluevector.com · small &amp; midcap discovery</span>
+      <span class="footer-text"><a href="/privacy.html" target="_blank" rel="noopener" class="footer-link">Privacy</a> · <a href="/terms.html" target="_blank" rel="noopener" class="footer-link">Terms</a></span>
     </div>
   </main>
 </div>
@@ -1331,7 +1334,7 @@ function fmtVal(val, type) {
   return val;
 }
 
-// FMP's per-share cash-flow figures are sometimes wildly inflated (wrong share
+// The data provider's per-share cash-flow figures are sometimes wildly inflated (wrong share
 // count), producing impossible FCF yields like 418,183%. A row is suspect if
 // EITHER the FCF yield itself is implausibly large (no real company yields more
 // than ~100% of price in FCF), OR FCF/share exceeds ~3x revenue/share. Either
