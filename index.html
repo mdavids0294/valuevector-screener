@@ -902,7 +902,7 @@ const TURNSTILE_SITE_KEY = _tsLocal ? TURNSTILE_TEST_KEY : TURNSTILE_PROD_KEY;
 let _turnstileId = null;       // widget instance id
 let _turnstileToken = null;    // latest token
 const PRICE_PROXY = '/api/price';
-const FMP_KEY = 'YOUR_FMP_KEY_HERE';
+const TREASURY_PROXY = '/api/treasury';
 
 // Hard liquidity floor — companies trading below this avg daily volume (shares)
 // are never shown, regardless of the volume slider. Tune as needed.
@@ -2936,12 +2936,12 @@ const maVisible = {20: true, 50: true, 200: true};
 let riskFreeAnnual = 0.044; // fallback
 (async function fetchTreasuryRate() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const res = await fetch(`https://financialmodelingprep.com/stable/treasury-rates?from=${today}&to=${today}&apikey=${FMP_KEY}`);
+    // Calls our own Pages Function, which adds the FMP key server-side.
+    const res = await fetch(TREASURY_PROXY);
     if (!res.ok) return;
     const data = await res.json();
-    if (Array.isArray(data) && data.length && data[0].year10) {
-      riskFreeAnnual = data[0].year10 / 100;
+    if (data && data.year10 != null) {
+      riskFreeAnnual = data.year10 / 100;
     }
   } catch(e) {}
 })();
