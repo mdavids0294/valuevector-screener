@@ -13,18 +13,28 @@ export async function onRequest(context) {
   }
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const fmpUrl = `https://financialmodelingprep.com/stable/treasury-rates?from=${today}&to=${today}&apikey=${key}`;
+    const today = new Date();
+    const from = new Date(today);
+    from.setDate(from.getDate() - 7); // look back a week so weekends/holidays don't yield null
+    const toStr = today.toISOString().slice(0, 10);
+    const fromStr = from.toISOString().slice(0, 10);
+    const fmpUrl = `https://financialmodelingprep.com/stable/treasury-rates?from=${fromStr}&to=${toStr}&apikey=${key}`;
     const res = await fetch(fmpUrl, { headers: { 'Accept': 'application/json' } });
 
     if (!res.ok) throw new Error(`FMP returned ${res.status}`);
 
     const data = await res.json();
-    const row = Array.isArray(data) && data.length ? data[0] : null;
+    // Sort newest-first by date, then pick the most recent row that has year10.
+    // (Sorting explicitly means we don't depend on FMP's return order.)
+    const row = Array.isArray(data)
+      ? data
+          .filter(r => r && r.year10 != null && r.date)
+          .sort((a, b) => (a.date < b.date ? 1 : -1))[0] || null
+      : null;
 
     // Return only the field the client needs — not the raw FMP payload.
     return new Response(JSON.stringify({
-      date: row?.date || today,
+      date: row?.date || toStr,
       year10: row?.year10 ?? null
     }), {
       status: 200,
