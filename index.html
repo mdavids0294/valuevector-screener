@@ -904,6 +904,31 @@ let _turnstileToken = null;    // latest token
 const PRICE_PROXY = '/api/price';
 const TREASURY_PROXY = '/api/treasury';
 
+// ── HTML ESCAPING (XSS defense) ───────────────────────────────────────────────
+// Every DB/user-derived string MUST pass through escapeHtml() before being put
+// into innerHTML, and through safeUrl() before going into an href. DB text
+// (company descriptions, names, insider names, preset names) is otherwise
+// injected as live HTML — a value containing <img onerror=...> would execute in
+// the viewer's session. These two helpers neutralize that.
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+// Allow only http(s) URLs in hrefs; reject javascript:, data:, etc. Returns ''
+// (no link) for anything that isn't a clean absolute http/https URL.
+function safeUrl(u) {
+  if (!u) return '';
+  try {
+    const parsed = new URL(String(u), location.origin);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? parsed.href : '';
+  } catch (e) { return ''; }
+}
+
 // Hard liquidity floor — companies trading below this avg daily volume (shares)
 // are never shown, regardless of the volume slider. Tune as needed.
 const MIN_AVG_VOLUME = 3000;
@@ -1429,8 +1454,8 @@ function renderTable(data) {
     const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
     return `<tr onclick="openModal('${c.symbol}')">
       <td class="wl-cell"><button class="wl-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button></td>
-      <td><span class="co-name">${(c.name||'').substring(0,24)}</span><span class="co-ticker">${c.symbol||''}</span></td>
-      <td><span style="font-size:10px;color:var(--text3)">${(c.sector||'').substring(0,16)}</span></td>
+      <td><span class="co-name">${escapeHtml((c.name||'').substring(0,24))}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
+      <td><span style="font-size:10px;color:var(--text3)">${escapeHtml((c.sector||'').substring(0,16))}</span></td>
       <td class="r">${priceCell}</td>
       <td class="r"><span class="num">${mc}</span></td>
       <td class="r"><span class="num">${pe}</span></td>
@@ -1477,8 +1502,8 @@ function renderCards(sorted) {
       <div class="sc-top">
         <button class="sc-star${on?' on':''}" data-sym="${c.symbol}" aria-label="${on?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${on?'★':'☆'}</button>
         <div class="sc-id">
-          <div class="sc-name">${(c.name||'').replace(/</g,'&lt;')}</div>
-          <div class="sc-meta">${meta.replace(/</g,'&lt;')}</div>
+          <div class="sc-name">${escapeHtml(c.name||'')}</div>
+          <div class="sc-meta">${escapeHtml(meta)}</div>
         </div>
         <div class="sc-px">
           <div class="sc-price">${priceFmt}</div>
@@ -2190,12 +2215,11 @@ function renderPresetRows(presets) {
   }
   el.innerHTML = presets.map(p => {
     const d = p.created_at ? new Date(p.created_at).toLocaleDateString([], {month:'short', day:'numeric'}) : '';
-    const safeName = (p.name || '').replace(/"/g, '&quot;');
-    return `<div class="pf-preset" data-id="${p.id}">
-      <span class="pf-preset-name">${p.name || '—'}</span>
+    return `<div class="pf-preset" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name || '')}">
+      <span class="pf-preset-name">${escapeHtml(p.name || '—')}</span>
       <span class="pf-preset-date">${d}</span>
-      <button class="pf-preset-act" onclick="startRenamePreset('${p.id}','${safeName}')" title="Rename">rename</button>
-      <button class="pf-preset-act del" onclick="deleteProfilePreset('${p.id}')" title="Delete">delete</button>
+      <button class="pf-preset-act" onclick="startRenamePreset('${escapeHtml(p.id)}')" title="Rename">rename</button>
+      <button class="pf-preset-act del" onclick="deleteProfilePreset('${escapeHtml(p.id)}')" title="Delete">delete</button>
     </div>`;
   }).join('');
 }
@@ -2217,12 +2241,13 @@ async function renderProfilePresets() {
   }
 }
 
-function startRenamePreset(id, currentName) {
+function startRenamePreset(id) {
   const row = document.querySelector(`.pf-preset[data-id="${id}"]`);
   if (!row) return;
+  const currentName = row.getAttribute('data-name') || '';
   row.innerHTML = `
-    <input class="pf-preset-input" id="pf-rename-input" type="text" maxlength="40" value="${currentName.replace(/&quot;/g,'"')}" onkeydown="if(event.key==='Enter')commitRenamePreset('${id}');if(event.key==='Escape')renderProfilePresets()">
-    <button class="pf-preset-act" onclick="commitRenamePreset('${id}')">save</button>
+    <input class="pf-preset-input" id="pf-rename-input" type="text" maxlength="40" value="${escapeHtml(currentName)}" onkeydown="if(event.key==='Enter')commitRenamePreset('${escapeHtml(id)}');if(event.key==='Escape')renderProfilePresets()">
+    <button class="pf-preset-act" onclick="commitRenamePreset('${escapeHtml(id)}')">save</button>
     <button class="pf-preset-act" onclick="renderProfilePresets()">cancel</button>`;
   const inp = document.getElementById('pf-rename-input');
   inp.focus(); inp.select();
@@ -2307,9 +2332,9 @@ async function loadPresets() {
       listEl.innerHTML = '<span class="preset-empty">No presets yet</span>';
     } else {
       listEl.innerHTML = presets.map(p =>
-        `<div class="preset-item" data-id="${p.id}">` +
-        `<button class="preset-load" onclick="applyPreset('${p.id}')">${p.name}</button>` +
-        `<button class="preset-del" onclick="deletePreset('${p.id}')">✕</button>` +
+        `<div class="preset-item" data-id="${escapeHtml(p.id)}">` +
+        `<button class="preset-load" onclick="applyPreset('${escapeHtml(p.id)}')">${escapeHtml(p.name)}</button>` +
+        `<button class="preset-del" onclick="deletePreset('${escapeHtml(p.id)}')">✕</button>` +
         `</div>`
       ).join('');
     }
@@ -2429,12 +2454,12 @@ function renderDropdown(results) {
   const dd = document.getElementById('search-dropdown');
   if (!results.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = results.slice(0, 8).map(c =>
-    '<div class="search-result" onclick="selectResult(\'' + c.symbol + '\')">' +
+    '<div class="search-result" onclick="selectResult(\'' + encodeURIComponent(c.symbol) + '\')">' +
     '<div class="search-result-left">' +
-    '<span class="search-result-sym">' + c.symbol + '</span>' +
-    '<span class="search-result-name">' + (c.name || '').substring(0, 40) + '</span>' +
+    '<span class="search-result-sym">' + escapeHtml(c.symbol) + '</span>' +
+    '<span class="search-result-name">' + escapeHtml((c.name || '').substring(0, 40)) + '</span>' +
     '</div>' +
-    '<span class="search-result-sector">' + (c.sector || '') + '</span>' +
+    '<span class="search-result-sector">' + escapeHtml(c.sector || '') + '</span>' +
     '</div>'
   ).join('');
   dd.style.display = 'block';
@@ -2819,19 +2844,20 @@ function openModal(symbol) {
 
   // Company meta pills
   const metaItems = [];
-  if (c.ceo) metaItems.push('CEO: ' + c.ceo);
+  if (c.ceo) metaItems.push('CEO: ' + escapeHtml(c.ceo));
   if (c.employees) metaItems.push(Number(c.employees).toLocaleString() + ' employees');
-  if (c.city && c.state) metaItems.push(c.city + ', ' + c.state);
+  if (c.city && c.state) metaItems.push(escapeHtml(c.city) + ', ' + escapeHtml(c.state));
   if (c.ipo_date) metaItems.push('IPO: ' + new Date(c.ipo_date).getFullYear());
   if (c.beta) metaItems.push('β ' + parseFloat(c.beta).toFixed(2));
-  if (c.website) metaItems.push('<a href="' + c.website + '" target="_blank" rel="noopener">' + c.website.replace(/^https?:\/\//, '') + '</a>');
+  const siteUrl = safeUrl(c.website);
+  if (siteUrl) metaItems.push('<a href="' + escapeHtml(siteUrl) + '" target="_blank" rel="noopener">' + escapeHtml(siteUrl.replace(/^https?:\/\//, '')) + '</a>');
   const metaPillsHtml = metaItems.length
     ? '<div class="modal-company-meta">' + metaItems.map(i => '<span class="modal-meta-pill">' + i + '</span>').join('') + '</div>'
     : '';
 
   // Description
   const descriptionHtml = c.description
-    ? '<div class="modal-description">' + c.description + '</div>'
+    ? '<div class="modal-description">' + escapeHtml(c.description) + '</div>'
     : '';
 
   document.getElementById('modal-backdrop').innerHTML = `
@@ -2841,10 +2867,10 @@ function openModal(symbol) {
         <div>
           <div class="modal-name-row">
             <button class="modal-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button>
-            <div class="modal-co-name">${c.name || c.symbol}</div>
+            <div class="modal-co-name">${escapeHtml(c.name || c.symbol)}</div>
           </div>
           <div class="modal-co-meta">
-            <span>${c.symbol}</span><span>${c.exchange || ''}</span><span>${c.sector || ''}</span>
+            <span>${escapeHtml(c.symbol)}</span><span>${escapeHtml(c.exchange || '')}</span><span>${escapeHtml(c.sector || '')}</span>
           </div>
         </div>
         <div style="display:flex;align-items:flex-start">
@@ -3266,7 +3292,7 @@ async function fetchInsiderTrades(symbol) {
       const cls = tradeTypeClass(t.transaction_type);
       const lbl = tradeTypeLabel(t.transaction_type);
       return '<div class="trade-row insider-row">' +
-        '<div class="tr-meta"><span class="tr-name">' + (t.reporting_name||'—') + '</span><span class="tr-role">' + (t.type_of_owner||'') + '</span></div>' +
+        '<div class="tr-meta"><span class="tr-name">' + escapeHtml(t.reporting_name||'—') + '</span><span class="tr-role">' + escapeHtml(t.type_of_owner||'') + '</span></div>' +
         '<span class="tr-type ' + cls + '">' + lbl + '</span>' +
         '<span class="tr-r">' + fmtShares(t.securities_transacted) + '</span>' +
         '<span class="tr-muted">' + (t.price ? '$'+parseFloat(t.price).toFixed(2) : '—') + '</span>' +
@@ -3302,9 +3328,9 @@ async function fetchCongressTrades(symbol) {
       const chamber = t.chamber === 'senate' ? 'Senate' : 'House';
       const district = t.district ? ' · ' + t.district : '';
       return '<div class="trade-row congress-row">' +
-        '<div class="tr-meta"><span class="tr-name">' + (t.last_name||'') + ' ' + (t.first_name||'') + '</span><span class="tr-role">' + chamber + district + '</span></div>' +
-        '<span class="tr-type ' + cls + '">' + (t.transaction_type||'—') + '</span>' +
-        '<span class="tr-muted">' + (t.amount||'—') + '</span>' +
+        '<div class="tr-meta"><span class="tr-name">' + escapeHtml((t.last_name||'') + ' ' + (t.first_name||'')) + '</span><span class="tr-role">' + escapeHtml(chamber + district) + '</span></div>' +
+        '<span class="tr-type ' + cls + '">' + escapeHtml(t.transaction_type||'—') + '</span>' +
+        '<span class="tr-muted">' + escapeHtml(t.amount||'—') + '</span>' +
         '<span class="tr-dim">' + fmtTradeDate(t.transaction_date) + '</span>' +
         '</div>';
     }).join('');
