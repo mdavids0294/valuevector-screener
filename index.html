@@ -380,6 +380,16 @@ td.r{text-align:right}
 .state small{font-size:10px;font-family:var(--mono)}
 .spinner{width:16px;height:16px;border:1.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Run-screen progress bar */
+.progress{width:260px;max-width:70%}
+.progress-track{height:4px;border-radius:4px;background:var(--bg3);overflow:hidden;position:relative}
+.progress-fill{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,var(--accent2,#9ed870),var(--accent));transition:width .25s ease;box-shadow:0 0 8px rgba(200,245,154,0.4)}
+/* Indeterminate sweep while the result count is still unknown */
+.progress.indeterminate .progress-fill{width:35%;animation:progress-sweep 1.1s ease-in-out infinite}
+@keyframes progress-sweep{0%{margin-left:-35%}100%{margin-left:100%}}
+.progress-meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text3)}
+.progress-pct{color:var(--accent)}
+.progress.indeterminate .progress-pct{visibility:hidden}
 
 /* FOOTER */
 .footer{flex-shrink:0;padding:8px 18px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -904,6 +914,7 @@ let _turnstileToken = null;    // latest token
 const PRICE_PROXY = '/api/price';
 const TREASURY_PROXY = '/api/treasury';
 
+
 // ── HTML ESCAPING (XSS defense) ───────────────────────────────────────────────
 // Every DB/user-derived string MUST pass through escapeHtml() before being put
 // into innerHTML, and through safeUrl() before going into an href. DB text
@@ -1231,6 +1242,34 @@ function setStatus(text, state) {
   dot.className = 'dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : '');
 }
 
+// ── RUN-SCREEN PROGRESS BAR ──────────────────────────────────────────────────
+// Renders a progress UI into #table-wrap. Two modes:
+//   showProgress(label)                  → indeterminate sweep (count unknown)
+//   updateProgress(done, total, label)   → real percentage (e.g. live prices)
+function showProgress(label) {
+  document.getElementById('table-wrap').innerHTML =
+    `<div class="state">
+       <div class="progress indeterminate" id="run-progress">
+         <div class="progress-track"><div class="progress-fill" id="run-progress-fill"></div></div>
+         <div class="progress-meta"><span id="run-progress-label">${label || 'Working...'}</span><span class="progress-pct" id="run-progress-pct">0%</span></div>
+       </div>
+     </div>`;
+}
+
+function updateProgress(done, total, label) {
+  const wrap = document.getElementById('run-progress');
+  const fill = document.getElementById('run-progress-fill');
+  const pct  = document.getElementById('run-progress-pct');
+  const lbl  = document.getElementById('run-progress-label');
+  if (!wrap || !fill || !pct) return;              // progress UI not on screen
+  const ratio = total > 0 ? Math.min(done / total, 1) : 0;
+  const percent = Math.round(ratio * 100);
+  wrap.classList.remove('indeterminate');          // switch to determinate
+  fill.style.width = percent + '%';
+  pct.textContent = percent + '%';
+  if (label && lbl) lbl.textContent = label;
+}
+
 let sortCol = 'pe', sortDir = 1, lastResults = [];
 let _tourIdx = 0, _tourActive = false, _tourReposITimer = null, _tourTargetEl = null;
 syncSortBar();
@@ -1241,24 +1280,36 @@ syncSortBar();
 let watchlist = new Set();
 let wlViewing = false;
 
-async function supabaseQuery(params) {
+async function supabaseQuery(params, onProgress) {
   const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    // Ask PostgREST to return the total matching-row count in Content-Range
+    // (e.g. "0-999/4823") so we can show a real percentage while paginating.
+    'Prefer': 'count=exact'
   };
   const base = `${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&${params}`;
-  let all = [], offset = 0;
+  let all = [], offset = 0, total = null;
   while (true) {
     const r = await fetch(`${base}&offset=${offset}&limit=1000`, { headers: hdrs });
     if (!r.ok) throw new Error(`Supabase error ${r.status}`);
+    // Parse the total once, from the first response. Content-Range: "0-999/4823".
+    if (total === null) {
+      const cr = r.headers.get('content-range') || '';
+      const slash = cr.indexOf('/');
+      const parsed = slash >= 0 ? parseInt(cr.slice(slash + 1), 10) : NaN;
+      total = Number.isFinite(parsed) ? parsed : null;
+    }
     const batch = await r.json();
     if (!Array.isArray(batch)) throw new Error('Unexpected response from Supabase');
     all = all.concat(batch);
+    // Real percentage when we know the total; otherwise fall back to text only.
+    if (onProgress && total) onProgress(all.length, total);
+    setStatus(`loading... ${all.length}${total ? '/' + total : ''} companies`, '');
     if (batch.length < 1000) break;
     offset += 1000;
-    setStatus(`loading... ${all.length} companies`, '');
   }
   // Populate allCompanies for search on first load
   if (!allCompanies.length) allCompanies = all;
@@ -1292,7 +1343,7 @@ function updateMarketStatus() {
 updateMarketStatus();
 setInterval(updateMarketStatus, 60000);
 
-async function enrichWithLivePrices(companies) {
+async function enrichWithLivePrices(companies, onProgress) {
   const BATCH = 20;
   const results = [...companies];
   for (let i = 0; i < results.length; i += BATCH) {
@@ -1339,6 +1390,7 @@ async function enrichWithLivePrices(companies) {
       };
     });
     setStatus(`fetching prices... ${Math.min(i + BATCH, results.length)}/${results.length}`, '');
+    if (onProgress) onProgress(Math.min(i + BATCH, results.length), results.length);
   }
   return results;
 }
@@ -1575,11 +1627,14 @@ async function runScreen() {
   label.textContent = 'Running...';
   btn.disabled = true;
   setStatus('querying...', '');
-  document.getElementById('table-wrap').innerHTML = '<div class="state"><div class="spinner"></div><p>Querying Supabase...</p></div>';
+  showProgress('Querying Supabase...');
 
   try {
     const params = buildQuery();
-    const data = await supabaseQuery(params);
+    // Query phase: real percentage from the total row count (Content-Range).
+    const data = await supabaseQuery(params, (done, total) => {
+      updateProgress(done, total, `Loading companies · ${done.toLocaleString()}/${total.toLocaleString()}`);
+    });
     if (!Array.isArray(data)) throw new Error('Unexpected response from Supabase');
 
     setStatus('filtering...', '');
@@ -1588,7 +1643,12 @@ async function runScreen() {
     // Only fetch live prices if results are manageable
     if (filtered.length <= 200) {
       setStatus('fetching live prices...', '');
-      await enrichWithLivePrices(filtered);
+      // Live prices arrive in discrete batches, so we can show a real percentage.
+      // Reset the bar to 0 for this second phase.
+      showProgress('Fetching live prices...');
+      await enrichWithLivePrices(filtered, (done, total) => {
+        updateProgress(done, total, `Fetching live prices · ${done}/${total}`);
+      });
     } else {
       setStatus(`${filtered.length} results — narrow filters for live prices`, 'live');
     }
