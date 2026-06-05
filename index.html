@@ -288,6 +288,39 @@ th{padding:9px 14px;text-align:left;font-family:var(--mono);font-size:9px;letter
 th:hover{color:var(--text2)}
 th.sorted{color:var(--accent)}
 th.r{text-align:right}
+/* Draggable data-table headers */
+th.th-col{cursor:grab;position:relative}
+th.th-col:active{cursor:grabbing}
+th.th-col.th-dragging{opacity:.4;background:var(--bg2)}
+th.th-col.th-drop-left::before,th.th-col.th-drop-right::after{content:'';position:absolute;top:15%;bottom:15%;width:2px;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+th.th-col.th-drop-left::before{left:-1px}
+th.th-col.th-drop-right::after{right:-1px}
+/* ── Column picker ───────────────────────────────────────────────────────── */
+.cols-toolbar{display:none;align-items:center;margin-left:auto;flex-shrink:0;position:relative;z-index:110}
+.cols-toolbar.show{display:flex}
+.cols-menu-wrap{position:relative}
+.cols-btn{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:7px 12px;border-radius:7px;cursor:pointer;transition:border-color .12s,color .12s}
+.cols-btn:hover{color:var(--text);border-color:var(--text3)}
+.cols-btn[aria-expanded="true"]{color:var(--accent);border-color:var(--accent)}
+.cols-ico{font-size:13px;line-height:1}
+.cols-menu{position:absolute;top:calc(100% + 6px);right:0;width:248px;max-height:60vh;overflow:auto;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;box-shadow:0 18px 40px -12px rgba(0,0,0,.7);padding:10px;z-index:40}
+.cols-menu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.cols-menu-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+.cols-reset{background:none;border:none;color:var(--text3);font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:2px 4px}
+.cols-reset:hover{color:var(--accent)}
+.cols-menu-hint{font-family:var(--mono);font-size:9px;color:var(--text3);margin:0 0 8px;letter-spacing:.03em}
+.cols-grip-hint{opacity:.8}
+.cols-list{display:flex;flex-direction:column;gap:1px}
+.col-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:grab;background:var(--bg2);transition:background .1s}
+.col-item:hover{background:var(--bg3)}
+.col-item.dragging{opacity:.45;background:var(--bg3)}
+.col-item.drag-over{box-shadow:inset 0 2px 0 var(--accent)}
+.col-grip{color:var(--text3);font-size:13px;line-height:1;cursor:grab;flex-shrink:0;user-select:none}
+.col-item input[type=checkbox]{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1px solid var(--text3);border-radius:4px;background:transparent;cursor:pointer;flex-shrink:0;position:relative;transition:background .1s,border-color .1s}
+.col-item input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.col-item input[type=checkbox]:checked::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--bg);font-weight:700}
+.col-label{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.02em;cursor:pointer;flex:1}
+.col-item input:checked ~ .col-label{color:var(--text)}
 tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s;cursor:pointer}
 tbody tr:hover{background:var(--bg2)}
 td{padding:10px 14px;font-size:12px;color:var(--text2);white-space:nowrap}
@@ -550,6 +583,7 @@ a{color:var(--accent);text-decoration:none}
   #tour-card{width:auto;left:14px !important;right:14px;max-width:none}
   #tour-card::before{display:none !important}
   .help-btn{width:26px;height:26px;font-size:13px}
+  .cols-toolbar,.cols-toolbar.show{display:none}
 }
 </style>
 </head>
@@ -840,6 +874,21 @@ a{color:var(--accent);text-decoration:none}
       </div>
       <div style="display:flex;align-items:center;gap:5px;flex:0 1 auto;overflow:hidden;min-width:0" id="recents-row">
         <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);white-space:nowrap;flex-shrink:0" id="recents-label" hidden>Recent</span>
+      </div>
+      <div class="cols-toolbar" id="cols-toolbar">
+        <div class="cols-menu-wrap">
+          <button class="cols-btn" id="cols-btn" onclick="toggleColsMenu(event)" aria-haspopup="true" aria-expanded="false" title="Add, remove, and reorder columns">
+            <span class="cols-ico">⊞</span> Columns
+          </button>
+          <div class="cols-menu" id="cols-menu" hidden>
+            <div class="cols-menu-head">
+              <span class="cols-menu-title">Table columns</span>
+              <button class="cols-reset" onclick="resetCols()">Reset</button>
+            </div>
+            <p class="cols-menu-hint">Toggle to show · drag <span class="cols-grip-hint">⠿</span> to reorder</p>
+            <div class="cols-list" id="cols-list"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="stats">
@@ -1426,102 +1475,247 @@ function fcfSuspect(c) {
   return false;
 }
 
+// ── Customizable results-table columns ──────────────────────────────────────
+// Single source of truth for every selectable column. Each def mirrors the
+// modal-field shape ({key,label,get,fmt,guard,color,suspect}) so formatting +
+// coloring stay consistent with the stock modal.
+//  - get:   value used for BOTH sorting and display
+//  - sort:  optional separate sort accessor (when the display value isn't ideal
+//           for sorting, e.g. pushing invalid ratios to the bottom)
+//  - fmt:   'x' | '%' | '$' | 'mc' | 'price' (price renders the live change too)
+//  - guard: value must pass this to render (else '—' and sorts to the bottom)
+//  - live:  shows the little "live" tag in the header when live prices are loaded
+// The Company column (name + ticker + star) is pinned and not part of this list.
+const COLUMN_DEFS = [
+  { key:'sector', label:'Sector',        fmt:'sector', get:c=>c.sector||'' },
+  { key:'price',  label:'Price',         r:true, live:true, fmt:'price', get:c=>c.live?.price ?? c.price },
+  { key:'mc',     label:'Mkt cap',       r:true, live:true, fmt:'mc',    get:c=>c.live?.market_cap ?? c.market_cap },
+  { key:'pe',     label:'P/E',           r:true, live:true, fmt:'x', guard:v=>v>0&&v<500, get:c=>c.live?.pe ?? c.ratios?.pe_ratio },
+  { key:'pb',     label:'P/B',           r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.pb ?? c.ratios?.pb_ratio },
+  { key:'ps',     label:'P/S',           r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ps ?? c.ratios?.ps_ratio },
+  { key:'pfcf',   label:'P/FCF',         r:true,            fmt:'x', guard:v=>v>0,        get:c=>c.live?.pfcf ?? c.ratios?.pfcf_ratio, suspect:fcfSuspect },
+  { key:'ev',     label:'EV/EBITDA',     r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ev_ebitda ?? c.ratios?.ev_ebitda },
+  { key:'ev_rev', label:'EV/Rev',        r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ev_revenue },
+  { key:'fcfy',   label:'FCF yield',     r:true, live:true, fmt:'%', color:'pos-good', guard:v=>v>0, get:c=>c.live?.fcf_yield ?? c.ratios?.fcf_yield, suspect:fcfSuspect },
+  { key:'ey',     label:'Earnings yield',r:true, live:true, fmt:'%', color:'pos-good',   get:c=>c.live?.earnings_yield ?? c.ratios?.earnings_yield },
+  { key:'gm',     label:'Gross margin',  r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.gross_margin },
+  { key:'em',     label:'EBITDA margin', r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.ebitda_margin },
+  { key:'ebm',    label:'EBIT margin',   r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.ebit_margin },
+  { key:'nm',     label:'Net margin',    r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.net_margin },
+  { key:'roe',    label:'ROE',           r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.roe },
+  { key:'roa',    label:'ROA',           r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.roa },
+  { key:'de',     label:'D/E',           r:true,            fmt:'x', color:'@debtToEquity',  get:c=>c.ratios?.debt_to_equity },
+  { key:'cr',     label:'Current ratio', r:true,            fmt:'x', color:'@currentRatio',  get:c=>c.ratios?.current_ratio },
+  { key:'eps',    label:'EPS',           r:true,            fmt:'$',                      get:c=>c.ratios?.eps },
+  { key:'bvps',   label:'Book / share',  r:true,            fmt:'$',                      get:c=>c.ratios?.book_value_per_share },
+  { key:'dy',     label:'Div yield',     r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.dividend_yield },
+  { key:'beta',   label:'Beta',          r:true,            fmt:'num',                    get:c=>c.beta },
+];
+const COLUMN_MAP = Object.fromEntries(COLUMN_DEFS.map(d => [d.key, d]));
+
+// Default visible columns, in order. NOTE: layout is NOT persisted between
+// sessions by design — it resets to this on every page load. To make it sticky
+// per-device later, swap these two helpers to read/write localStorage:
+//   load: JSON.parse(localStorage.getItem('vv_cols')) || DEFAULT_COLS.slice()
+//   save: localStorage.setItem('vv_cols', JSON.stringify(visibleCols))  // in setVisibleCols
+const DEFAULT_COLS = ['sector','price','mc','pe','pb','gm','nm','fcfy','ev','ev_rev','de'];
+let visibleCols = DEFAULT_COLS.slice();
+function setVisibleCols(keys) {
+  // keep only known keys, dedupe, preserve given order
+  const seen = new Set();
+  visibleCols = keys.filter(k => COLUMN_MAP[k] && !seen.has(k) && seen.add(k));
+  // If we're sorted by a column that's now hidden, fall back to Company.
+  if (sortCol !== 'name' && !visibleCols.includes(sortCol)) { sortCol = 'name'; sortDir = 1; syncSortBar(); }
+  if (lastResults && lastResults.length) renderTable(lastResults);
+}
+
+// ── Column-picker menu (checkboxes + drag-to-reorder) ───────────────────────
+// The list shows EVERY column in COLUMN_DEFS. Order in the list = the order in
+// the table; checked = visible. Drag reorders; the table re-renders live on any
+// change. State lives only in `visibleCols` (reset each load, by design).
+function renderColsMenu() {
+  const list = document.getElementById('cols-list');
+  if (!list) return;
+  // Show currently-visible columns first (in their on-screen order), then the
+  // hidden ones (in registry order) so adding a column appends predictably.
+  const hidden = COLUMN_DEFS.map(d => d.key).filter(k => !visibleCols.includes(k));
+  const order = [...visibleCols, ...hidden];
+  list.innerHTML = order.map(key => {
+    const def = COLUMN_MAP[key];
+    const on = visibleCols.includes(key);
+    return `<div class="col-item" draggable="true" data-key="${key}">
+      <span class="col-grip" aria-hidden="true">⠿</span>
+      <input type="checkbox" id="col-cb-${key}" ${on?'checked':''} onchange="onColToggle('${key}',this.checked)">
+      <label class="col-label" for="col-cb-${key}">${def.label}</label>
+    </div>`;
+  }).join('');
+  wireColDrag(list);
+}
+
+function onColToggle(key, on) {
+  let next = visibleCols.slice();
+  if (on) { if (!next.includes(key)) next.push(key); }
+  else    { next = next.filter(k => k !== key); }
+  setVisibleCols(next);
+  renderColsMenu();
+}
+
+function resetCols() { setVisibleCols(DEFAULT_COLS.slice()); renderColsMenu(); }
+
+// Drag-to-reorder. Reordering a hidden row also makes it visible (intuitive:
+// you don't drag something you don't want shown). Order across the whole list
+// becomes the new column order, filtered to the checked set.
+let _colDragKey = null;
+function wireColDrag(list) {
+  list.querySelectorAll('.col-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      _colDragKey = item.dataset.key;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      list.querySelectorAll('.col-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (item.dataset.key !== _colDragKey) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const targetKey = item.dataset.key;
+      if (!_colDragKey || _colDragKey === targetKey) return;
+      // Build the new full order from current DOM order, moving dragged → target.
+      const domOrder = [...list.querySelectorAll('.col-item')].map(i => i.dataset.key);
+      const from = domOrder.indexOf(_colDragKey);
+      domOrder.splice(from, 1);
+      const to = domOrder.indexOf(targetKey);
+      domOrder.splice(to, 0, _colDragKey);
+      // New visible set: previously-visible columns plus the just-moved one,
+      // ordered by domOrder.
+      const visibleSet = new Set(visibleCols); visibleSet.add(_colDragKey);
+      setVisibleCols(domOrder.filter(k => visibleSet.has(k)));
+      renderColsMenu();
+    });
+  });
+}
+
+function toggleColsMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const menu = document.getElementById('cols-menu');
+  const btn  = document.getElementById('cols-btn');
+  if (!menu) return;
+  const open = menu.hidden;
+  if (open) { renderColsMenu(); menu.hidden = false; btn.setAttribute('aria-expanded','true'); }
+  else      { menu.hidden = true; btn.setAttribute('aria-expanded','false'); }
+}
+function closeColsMenu() {
+  const menu = document.getElementById('cols-menu');
+  const btn  = document.getElementById('cols-btn');
+  if (menu && !menu.hidden) { menu.hidden = true; btn?.setAttribute('aria-expanded','false'); }
+}
+// Close on outside click / Escape.
+document.addEventListener('click', e => {
+  const wrap = document.querySelector('.cols-menu-wrap');
+  if (wrap && !wrap.contains(e.target)) closeColsMenu();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeColsMenu(); });
+// applied to the inner <span class="num ...">.
+function fmtCell(col, c) {
+  if (col.fmt === 'sector') return { text: escapeHtml((c.sector||'').substring(0,16)), cls:'', plain:true };
+  if (col.fmt === 'price') {
+    const priceVal = c.live?.price ?? c.price;
+    const priceFmt = priceVal ? '$' + priceVal.toFixed(2) : '—';
+    const chgPct = c.live?.change_pct;
+    const chgCls = chgPct == null ? '' : chgPct > 0 ? 'chg-up' : chgPct < 0 ? 'chg-dn' : 'chg-flat';
+    const chgFmt = chgPct != null ? (chgPct > 0 ? '▲' : chgPct < 0 ? '▼' : '') + Math.abs(chgPct).toFixed(2) + '%' : '';
+    return { text:`<div class="price-cell"><span class="num">${priceFmt}</span>${chgFmt ? `<span class="${chgCls}">${chgFmt}</span>` : ''}</div>`, cls:'', raw:true };
+  }
+  const v = col.get(c);
+  const passes = col.guard ? col.guard(v) : true;
+  const ok = v !== null && v !== undefined && !isNaN(v) && passes;
+  const suspect = ok && col.suspect ? col.suspect(c) : false;
+  let text = '—';
+  if (ok) {
+    if (col.fmt === 'x') text = v.toFixed(v < 10 ? 2 : 1) + '×';
+    else if (col.fmt === '%') text = (v*100).toFixed(1) + '%';
+    else if (col.fmt === '$') text = '$' + v.toFixed(2);
+    else if (col.fmt === 'mc') text = fmtVal(v, 'mc');
+    else if (col.fmt === 'num') text = v.toFixed(2);
+    else text = String(v);
+  }
+  // Resolve @-prefixed threshold tokens lazily (COLOR_THRESHOLDS is defined
+  // later in the file, so we can't capture it in the registry without a TDZ).
+  const colorMode = (typeof col.color === 'string' && col.color[0] === '@')
+    ? COLOR_THRESHOLDS[col.color.slice(1)] : col.color;
+  const cls = ok ? (suspect ? 'suspect' : colorClass(v, colorMode)) : '';
+  return { text, cls };
+}
+
+// Sort key for a column — invalid/guarded-out values sort to the bottom.
+function colSortVal(col, c) {
+  if (col.fmt === 'sector') return col.get(c) || '';
+  const v = col.get(c);
+  const passes = col.guard ? col.guard(v) : true;
+  if (v === null || v === undefined || isNaN(v) || !passes) {
+    // push to the end regardless of direction handled by renderTable's *dir
+    return col.lowGoodBottom ? -Infinity : 9e15;
+  }
+  return v;
+}
+
 function renderTable(data) {
-  const colMap = {
-    name:      c => c.name || '',
-    sector:    c => c.sector || '',
-    price:     c => c.live?.price || c.price || 0,
-    mc:        c => c.live?.market_cap || c.market_cap || 0,
-    pe:        c => { const v = c.live?.pe ?? c.ratios?.pe_ratio; return (v > 0 && v < 500) ? v : 9999; },
-    pb:        c => { const v = c.live?.pb ?? c.ratios?.pb_ratio; return v > 0 ? v : 9999; },
-    gm:        c => c.ratios?.gross_margin || 0,
-    nm:        c => c.ratios?.net_margin || 0,
-    fcfy:      c => c.live?.fcf_yield ?? c.ratios?.fcf_yield ?? 0,
-    ev:        c => { const v = c.live?.ev_ebitda ?? c.ratios?.ev_ebitda; return v > 0 ? v : 9999; },
-    ev_rev:    c => { const v = c.live?.ev_revenue; return v > 0 ? v : 9999; },
-    de:        c => c.ratios?.debt_to_equity ?? 9999,
-  };
+  // Resolve the active sort column: 'name' is the pinned Company column.
+  const sortDef = sortCol === 'name' ? null : COLUMN_MAP[sortCol];
 
   const sorted = [...data].sort((a, b) => {
-    const av = colMap[sortCol]?.(a) ?? 0, bv = colMap[sortCol]?.(b) ?? 0;
+    if (!sortDef) { // Company / name
+      return (a.name||'').localeCompare(b.name||'') * sortDir;
+    }
+    const av = colSortVal(sortDef, a), bv = colSortVal(sortDef, b);
     return typeof av === 'string' ? av.localeCompare(bv) * sortDir : (av - bv) * sortDir;
   });
 
   if (sorted.length === 0) {
     document.getElementById('table-wrap').innerHTML = '<div class="state"><div style="font-size:24px;font-family:var(--serif);font-style:italic;color:var(--text3)">No results</div><p>Try relaxing your filters</p></div>';
+    document.getElementById('cols-toolbar')?.classList.remove('show'); closeColsMenu();
     return;
   }
 
   const hasLive = sorted.some(c => c.live);
   const liveTag = hasLive ? ' <span style="font-size:8px;color:var(--accent2);opacity:0.7">live</span>' : '';
+  const cols = visibleCols.map(k => COLUMN_MAP[k]).filter(Boolean);
 
-  const headers = [
-    {key:'_wl',    label:'',            wl:true},
-    {key:'name',   label:'Company'},
-    {key:'sector', label:'Sector'},
-    {key:'price',  label:'Price',        r:true, live:true},
-    {key:'mc',     label:'Mkt cap',      r:true, live:true},
-    {key:'pe',     label:'P/E',          r:true, live:true},
-    {key:'pb',     label:'P/B',          r:true, live:true},
-    {key:'gm',     label:'Gross margin', r:true},
-    {key:'nm',     label:'Net margin',   r:true},
-    {key:'fcfy',   label:'FCF yield',    r:true, live:true},
-    {key:'ev',     label:'EV/EBITDA',    r:true, live:true},
-    {key:'ev_rev', label:'EV/Rev',       r:true, live:true},
-    {key:'de',     label:'D/E',          r:true},
-  ];
-
-  const thead = headers.map(h => {
-    if (h.wl) return '<th class="wl-cell"></th>';
-    const arr = sortCol === h.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
-    const tag = (h.live && hasLive) ? liveTag : '';
-    return `<th class="${sortCol===h.key?'sorted':''} ${h.r?'r':''}" onclick="sortBy('${h.key}')">${h.label}${tag}${arr}</th>`;
-  }).join('');
+  // Header: pinned star + Company, then the user's chosen columns.
+  const thead =
+    '<th class="wl-cell"></th>' +
+    `<th class="${sortCol==='name'?'sorted':''}" onclick="sortBy('name')">Company${sortCol==='name'?(sortDir===-1?' ↓':' ↑'):''}</th>` +
+    cols.map(col => {
+      const arr = sortCol === col.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
+      const tag = (col.live && hasLive) ? liveTag : '';
+      return `<th class="th-col${sortCol===col.key?' sorted':''} ${col.r?'r':''}" draggable="true" data-key="${col.key}" onclick="headerClick('${col.key}')" title="Click to sort · drag to reorder">${col.label}${tag}${arr}</th>`;
+    }).join('');
 
   const tbody = sorted.map(c => {
-    const r = c.ratios;
-    const lp = c.live;
-
-    // Price + change
-    const priceVal = lp?.price || c.price;
-    const priceFmt = priceVal ? '$' + priceVal.toFixed(2) : '—';
-    const chgPct = lp?.change_pct;
-    const chgCls = chgPct == null ? '' : chgPct > 0 ? 'chg-up' : chgPct < 0 ? 'chg-dn' : 'chg-flat';
-    const chgFmt = chgPct != null ? (chgPct > 0 ? '▲' : chgPct < 0 ? '▼' : '') + Math.abs(chgPct).toFixed(2) + '%' : '';
-    const priceCell = `<div class="price-cell"><span class="num">${priceFmt}</span>${chgFmt ? `<span class="${chgCls}">${chgFmt}</span>` : ''}</div>`;
-    const mc   = fmtVal(lp?.market_cap || c.market_cap, 'mc');
-    const peV  = lp?.pe ?? r?.pe_ratio;
-    const pbV  = lp?.pb ?? r?.pb_ratio;
-    const pe   = peV > 0 && peV < 500 ? peV.toFixed(1)+'×' : '—';
-    const pb   = pbV > 0 ? pbV.toFixed(2)+'×' : '—';
-    const gm   = r?.gross_margin != null ? (r.gross_margin*100).toFixed(1)+'%' : '—';
-    const nm   = r?.net_margin != null ? (r.net_margin*100).toFixed(1)+'%' : '—';
-    const fcfyV = lp?.fcf_yield ?? r?.fcf_yield;
-    const fcfSus = fcfSuspect(c);
-    const fcfy = fcfyV > 0 ? (fcfyV*100).toFixed(1)+'%' : '—';
-    const evV  = lp?.ev_ebitda ?? r?.ev_ebitda;
-    const ev   = evV > 0 ? evV.toFixed(1)+'×' : '—';
-    const evrV = lp?.ev_revenue;
-    const evr  = evrV > 0 ? evrV.toFixed(1)+'×' : '—';
-    const de   = r?.debt_to_equity != null ? r.debt_to_equity.toFixed(2)+'×' : '—';
+    const cells = cols.map(col => {
+      const { text, cls, raw, plain } = fmtCell(col, c);
+      const align = col.r ? ' class="r"' : '';
+      if (raw)   return `<td${align}>${text}</td>`;
+      if (plain) return `<td><span style="font-size:10px;color:var(--text3)">${text}</span></td>`;
+      return `<td${align}><span class="num${cls ? ' ' + cls : ''}">${text}</span></td>`;
+    }).join('');
     return `<tr onclick="openModal('${c.symbol}')">
       <td class="wl-cell"><button class="wl-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button></td>
       <td><span class="co-name">${escapeHtml((c.name||'').substring(0,24))}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
-      <td><span style="font-size:10px;color:var(--text3)">${escapeHtml((c.sector||'').substring(0,16))}</span></td>
-      <td class="r">${priceCell}</td>
-      <td class="r"><span class="num">${mc}</span></td>
-      <td class="r"><span class="num">${pe}</span></td>
-      <td class="r"><span class="num">${pb}</span></td>
-      <td class="r"><span class="num">${gm}</span></td>
-      <td class="r"><span class="num">${nm}</span></td>
-      <td class="r"><span class="num${fcfSus ? ' suspect' : ''}">${fcfy}</span></td>
-      <td class="r"><span class="num">${ev}</span></td>
-      <td class="r"><span class="num">${evr}</span></td>
-      <td class="r"><span class="num">${de}</span></td>
+      ${cells}
     </tr>`;
   }).join('');
 
   document.getElementById('table-wrap').innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>` + renderCards(sorted);
+  document.getElementById('cols-toolbar')?.classList.add('show');
+  wireHeaderDrag();
 }
 
 // Build the mobile card list from the same sorted rows. CSS shows this only
@@ -1575,11 +1769,74 @@ function renderCards(sorted) {
   return `<div class="card-list">${cards}</div>`;
 }
 
+// Columns where a high value is "good" → first click sorts descending so the
+// best rows surface at the top. Derived from the registry (any % column plus
+// the score/return-style keys), so newly added metrics behave sensibly.
+const DESC_FIRST_COLS = new Set(['score', ...COLUMN_DEFS.filter(d => d.fmt === '%').map(d => d.key)]);
 function sortBy(col) {
-  sortDir = sortCol === col ? sortDir * -1 : (['score','gm','nm','fcfy','roe'].includes(col) ? -1 : 1);
+  sortDir = sortCol === col ? sortDir * -1 : (DESC_FIRST_COLS.has(col) ? -1 : 1);
   sortCol = col;
   renderTable(lastResults);
   syncSortBar();
+}
+
+// ── Header drag-to-reorder ──────────────────────────────────────────────────
+// The data-table headers are draggable to reorder columns directly. A plain
+// click still sorts; we suppress that sort if a drag just happened so the two
+// gestures don't collide.
+let _headerJustDragged = false;
+function headerClick(key) {
+  if (_headerJustDragged) { _headerJustDragged = false; return; }
+  sortBy(key);
+}
+
+let _thDragKey = null;
+function wireHeaderDrag() {
+  const ths = document.querySelectorAll('#table-wrap th.th-col');
+  ths.forEach(th => {
+    th.addEventListener('dragstart', e => {
+      _thDragKey = th.dataset.key;
+      th.classList.add('th-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Firefox requires data to be set for drag to start.
+      try { e.dataTransfer.setData('text/plain', th.dataset.key); } catch(_) {}
+    });
+    th.addEventListener('dragend', () => {
+      th.classList.remove('th-dragging');
+      document.querySelectorAll('#table-wrap th.th-col').forEach(x => x.classList.remove('th-drop-left','th-drop-right'));
+      // Keep the click-suppression flag true through the click that fires right
+      // after a drop, then clear it on the next tick.
+      setTimeout(() => { _headerJustDragged = false; }, 0);
+    });
+    th.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (th.dataset.key === _thDragKey) return;
+      // Indicate insert side based on pointer position within the header.
+      const rect = th.getBoundingClientRect();
+      const before = (e.clientX - rect.left) < rect.width / 2;
+      th.classList.toggle('th-drop-left', before);
+      th.classList.toggle('th-drop-right', !before);
+    });
+    th.addEventListener('dragleave', () => th.classList.remove('th-drop-left','th-drop-right'));
+    th.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetKey = th.dataset.key;
+      const before = th.classList.contains('th-drop-left');
+      th.classList.remove('th-drop-left','th-drop-right');
+      if (!_thDragKey || _thDragKey === targetKey) return;
+      _headerJustDragged = true; // swallow the click that follows the drop
+      const order = visibleCols.slice();
+      const from = order.indexOf(_thDragKey);
+      if (from === -1) return;
+      order.splice(from, 1);
+      let to = order.indexOf(targetKey);
+      if (!before) to += 1;
+      order.splice(to, 0, _thDragKey);
+      setVisibleCols(order); // re-renders the table (and re-wires drag)
+      if (!document.getElementById('cols-menu')?.hidden) renderColsMenu();
+    });
+  });
 }
 
 // Mobile sort bar ↔ sort state. The dropdown picks the column; the button flips
@@ -3447,6 +3704,10 @@ window.commitRenamePreset = commitRenamePreset;
 window.deleteProfilePreset = deleteProfilePreset;
 window.renderProfilePresets = renderProfilePresets;
 window.sortBy = sortBy;
+window.headerClick = headerClick;
+window.toggleColsMenu = toggleColsMenu;
+window.onColToggle = onColToggle;
+window.resetCols = resetCols;
 window.toggleSortDir = toggleSortDir;
 window.savePreset = savePreset;
 window.applyPreset = applyPreset;
