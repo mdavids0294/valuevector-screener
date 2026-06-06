@@ -3284,7 +3284,7 @@ function openModal(symbol) {
             <span>${escapeHtml(c.symbol)}</span><span>${escapeHtml(c.exchange || '')}</span><span>${escapeHtml(c.sector || '')}</span>
           </div>
         </div>
-        <div style="display:flex;align-items:flex-start">
+        <div style="display:flex;align-items:flex-start;flex-shrink:0">
           <div class="modal-price">
             <span class="modal-price-val">${priceFmt}</span>
             ${chgFmt ? '<span class="modal-price-chg modal-ratio-val ' + chgCls + '">' + chgFmt + '</span>' : ''}
