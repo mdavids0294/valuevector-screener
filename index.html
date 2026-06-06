@@ -295,6 +295,9 @@ th.th-col.th-dragging{opacity:.4;background:var(--bg2)}
 th.th-col.th-drop-left::before,th.th-col.th-drop-right::after{content:'';position:absolute;top:15%;bottom:15%;width:2px;background:var(--accent);box-shadow:0 0 6px var(--accent)}
 th.th-col.th-drop-left::before{left:-1px}
 th.th-col.th-drop-right::after{right:-1px}
+/* Sparkline trend cell */
+svg.spark{display:block;vertical-align:middle}
+.spark-empty{color:var(--text3);font-family:var(--mono);font-size:11px}
 /* ── Column picker ───────────────────────────────────────────────────────── */
 .cols-toolbar{display:none;align-items:center;margin-left:auto;flex-shrink:0;position:relative;z-index:110}
 .cols-toolbar.show{display:flex}
@@ -1448,6 +1451,79 @@ function getLive(c, field) {
   return c.live?.[field] ?? c.ratios?.[field] ?? null;
 }
 
+// ── Sparklines (6-month price trend) ────────────────────────────────────────
+// One bulk pull from the `prices` table for every visible symbol, grouped
+// client-side. Runs only in the ≤200-results branch (same gate as live prices),
+// so it's one batched fetch per screen run, not one-per-row. Each company gets
+// c._spark = [close, close, …] oldest→newest, which sparklineSVG() draws.
+const SPARK_DAYS = 190;            // ~6 months of trading days, with slack
+const SPARK_SYMBOLS_PER_REQ = 60;  // cap symbols/request to keep the URL short
+async function fetchSparklines(companies, onProgress) {
+  const symbols = companies.map(c => c.symbol).filter(Boolean);
+  if (!symbols.length) return;
+  const fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - SPARK_DAYS);
+  const from = fromDate.toISOString().slice(0, 10);
+  const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
+
+  const bySymbol = new Map(); // symbol -> [{date, close}]
+  let done = 0;
+  // Chunk the symbol list; within each chunk, page rows 1000 at a time.
+  for (let i = 0; i < symbols.length; i += SPARK_SYMBOLS_PER_REQ) {
+    const chunk = symbols.slice(i, i + SPARK_SYMBOLS_PER_REQ);
+    const inList = chunk.map(s => encodeURIComponent(s)).join(',');
+    const base = `${SUPABASE_URL}/rest/v1/prices?symbol=in.(${inList})&date=gte.${from}&order=symbol.asc,date.asc&select=symbol,date,close`;
+    let offset = 0;
+    while (true) {
+      let batch;
+      try {
+        const r = await fetch(`${base}&offset=${offset}&limit=1000`, { headers: hdrs });
+        if (!r.ok) break;
+        batch = await r.json();
+      } catch(e) { break; }
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      for (const row of batch) {
+        if (!bySymbol.has(row.symbol)) bySymbol.set(row.symbol, []);
+        bySymbol.get(row.symbol).push(row.close);
+      }
+      if (batch.length < 1000) break;
+      offset += 1000;
+    }
+    done = Math.min(i + chunk.length, symbols.length);
+    if (onProgress) onProgress(done, symbols.length);
+  }
+  // Attach to each company (closes are already oldest→newest from the order by).
+  companies.forEach(c => { c._spark = bySymbol.get(c.symbol) || null; });
+}
+
+// Build a tiny inline SVG sparkline. Green if the period ended up, red if down,
+// muted if flat. Includes a faint area fill beneath the line (like the modal
+// chart and the reference image). Returns '' when there isn't enough data.
+function sparklineSVG(closes) {
+  if (!Array.isArray(closes) || closes.length < 2) return '';
+  const W = 96, H = 26, P = 2;            // compact, fits a table cell
+  const first = closes[0], last = closes[closes.length - 1];
+  const up = last > first, flat = last === first;
+  const stroke = flat ? 'var(--text3)' : (up ? 'var(--accent)' : 'var(--red)');
+  const min = Math.min(...closes), max = Math.max(...closes);
+  const span = (max - min) || 1;          // avoid divide-by-zero on a flat line
+  const n = closes.length;
+  const x = i => P + (i / (n - 1)) * (W - 2 * P);
+  const y = v => P + (1 - (v - min) / span) * (H - 2 * P);
+  let d = '';
+  for (let i = 0; i < n; i++) d += (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ' ' + y(closes[i]).toFixed(1);
+  const area = d + 'L' + x(n - 1).toFixed(1) + ' ' + (H - P) + 'L' + x(0).toFixed(1) + ' ' + (H - P) + 'Z';
+  const uid = 'sg' + Math.random().toString(36).slice(2, 8); // unique gradient id per cell
+  return `<svg class="spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true" preserveAspectRatio="none">
+    <defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${stroke}" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="${stroke}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#${uid})" stroke="none"/>
+    <path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
 function fmtVal(val, type) {
   if (val === null || val === undefined || isNaN(val)) return '—';
   if (type === 'x') return val.toFixed(1) + '×';
@@ -1489,6 +1565,7 @@ function fcfSuspect(c) {
 const COLUMN_DEFS = [
   { key:'sector', label:'Sector',        fmt:'sector', get:c=>c.sector||'' },
   { key:'price',  label:'Price',         r:true, live:true, fmt:'price', get:c=>c.live?.price ?? c.price },
+  { key:'spark',  label:'Trend · 6M',    fmt:'spark', noSort:true, get:c=>c._spark },
   { key:'mc',     label:'Mkt cap',       r:true, live:true, fmt:'mc',    get:c=>c.live?.market_cap ?? c.market_cap },
   { key:'pe',     label:'P/E',           r:true, live:true, fmt:'x', guard:v=>v>0&&v<500, get:c=>c.live?.pe ?? c.ratios?.pe_ratio },
   { key:'pb',     label:'P/B',           r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.pb ?? c.ratios?.pb_ratio },
@@ -1518,7 +1595,7 @@ const COLUMN_MAP = Object.fromEntries(COLUMN_DEFS.map(d => [d.key, d]));
 // per-device later, swap these two helpers to read/write localStorage:
 //   load: JSON.parse(localStorage.getItem('vv_cols')) || DEFAULT_COLS.slice()
 //   save: localStorage.setItem('vv_cols', JSON.stringify(visibleCols))  // in setVisibleCols
-const DEFAULT_COLS = ['sector','price','mc','pe','pb','gm','nm','fcfy','ev','ev_rev','de'];
+const DEFAULT_COLS = ['sector','price','spark','mc','pe','pb','gm','nm','fcfy','ev','ev_rev','de'];
 let visibleCols = DEFAULT_COLS.slice();
 function setVisibleCols(keys) {
   // keep only known keys, dedupe, preserve given order
@@ -1625,6 +1702,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeColsMen
 // applied to the inner <span class="num ...">.
 function fmtCell(col, c) {
   if (col.fmt === 'sector') return { text: escapeHtml((c.sector||'').substring(0,16)), cls:'', plain:true };
+  if (col.fmt === 'spark') {
+    const svg = sparklineSVG(c._spark);
+    return { text: svg || '<span class="spark-empty">—</span>', cls:'', raw:true };
+  }
   if (col.fmt === 'price') {
     const priceVal = c.live?.price ?? c.price;
     const priceFmt = priceVal ? '$' + priceVal.toFixed(2) : '—';
@@ -1693,9 +1774,11 @@ function renderTable(data) {
     '<th class="wl-cell"></th>' +
     `<th class="${sortCol==='name'?'sorted':''}" onclick="sortBy('name')">Company${sortCol==='name'?(sortDir===-1?' ↓':' ↑'):''}</th>` +
     cols.map(col => {
-      const arr = sortCol === col.key ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
+      const arr = (!col.noSort && sortCol === col.key) ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
       const tag = (col.live && hasLive) ? liveTag : '';
-      return `<th class="th-col${sortCol===col.key?' sorted':''} ${col.r?'r':''}" draggable="true" data-key="${col.key}" onclick="headerClick('${col.key}')" title="Click to sort · drag to reorder">${col.label}${tag}${arr}</th>`;
+      const sortedCls = (!col.noSort && sortCol === col.key) ? ' sorted' : '';
+      const title = col.noSort ? 'Drag to reorder' : 'Click to sort · drag to reorder';
+      return `<th class="th-col${sortedCls} ${col.r?'r':''}" draggable="true" data-key="${col.key}" onclick="headerClick('${col.key}')" title="${title}">${col.label}${tag}${arr}</th>`;
     }).join('');
 
   const tbody = sorted.map(c => {
@@ -1787,6 +1870,7 @@ function sortBy(col) {
 let _headerJustDragged = false;
 function headerClick(key) {
   if (_headerJustDragged) { _headerJustDragged = false; return; }
+  if (COLUMN_MAP[key]?.noSort) return;  // e.g. the sparkline column
   sortBy(key);
 }
 
@@ -1905,6 +1989,12 @@ async function runScreen() {
       showProgress('Fetching live prices...');
       await enrichWithLivePrices(filtered, (done, total) => {
         updateProgress(done, total, `Fetching live prices · ${done}/${total}`);
+      });
+      // Sparkline trend data — one bulk pull from `prices` for all visible rows.
+      setStatus('fetching price history...', '');
+      showProgress('Loading trend charts...');
+      await fetchSparklines(filtered, (done, total) => {
+        updateProgress(done, total, `Loading trend charts · ${done}/${total}`);
       });
     } else {
       setStatus(`${filtered.length} results — narrow filters for live prices`, 'live');
@@ -2150,6 +2240,7 @@ async function openWatchlist() {
     if (ordered.length && ordered.length <= 200) {
       setStatus('watchlist · fetching live prices...', '');
       await enrichWithLivePrices(ordered);
+      await fetchSparklines(ordered);
       renderWatchlistRows();
       updateStats(ordered);
     }
