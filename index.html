@@ -328,7 +328,7 @@ tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s;curso
 tbody tr:hover{background:var(--bg2)}
 td{padding:10px 14px;font-size:12px;color:var(--text2);white-space:nowrap}
 td.r{text-align:right}
-.co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .co-ticker{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:1px}
 .num{font-family:var(--mono);font-size:11px}
 .num.suspect{color:var(--red)}
@@ -1794,7 +1794,7 @@ function renderTable(data) {
     }).join('');
     return `<tr onclick="openModal('${c.symbol}')">
       <td class="wl-cell"><button class="wl-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button></td>
-      <td><span class="co-name">${escapeHtml((c.name||'').substring(0,24))}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
+      <td><span class="co-name" title="${escapeHtml(c.name||'')}">${escapeHtml(c.name||'')}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
       ${cells}
     </tr>`;
   }).join('');
