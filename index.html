@@ -442,8 +442,10 @@ a{color:var(--accent);text-decoration:none}
 .modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .modal-backdrop.visible .modal-box{transform:translateY(0)}
 .modal-header{padding:16px 20px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1}
-.modal-co-name{font-size:16px;font-weight:500;color:var(--text);margin:0}
-.modal-name-row{display:flex;align-items:center;margin:0 0 4px}
+.modal-co-name{font-size:16px;font-weight:500;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.modal-name-row{display:flex;align-items:center;margin:0 0 4px;min-width:0}
+.modal-head-left{flex:1 1 auto;min-width:0;padding-right:14px}
+.modal-name-row .modal-star{flex-shrink:0}
 .modal-co-meta{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.08em}
 .modal-co-meta span{margin-right:10px}
 .modal-price{text-align:right;flex-shrink:0}
@@ -490,6 +492,7 @@ a{color:var(--accent);text-decoration:none}
 .chart-ma-btn.on{opacity:1}
 .chart-svg{width:100%;height:195px;display:block;overflow:visible}
 .chart-loading{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;padding:40px 0}
+.chart-coverage-note{font-family:var(--mono);font-size:9.5px;line-height:1.4;color:var(--amber);background:rgba(240,192,64,0.07);border:0.5px solid rgba(240,192,64,0.25);border-radius:5px;padding:6px 9px;margin-top:8px}
 .chart-tooltip{position:absolute;background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:5px 8px;font-family:var(--mono);font-size:10px;color:var(--text);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:10}
 .chart-tooltip.visible{opacity:1}
 
@@ -3272,10 +3275,10 @@ function openModal(symbol) {
     <div class="modal-box" id="modal-box">
       <div class="sheet-grabber" onclick="closeModal()"></div>
       <div class="modal-header">
-        <div>
+        <div class="modal-head-left">
           <div class="modal-name-row">
             <button class="modal-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button>
-            <div class="modal-co-name">${escapeHtml(c.name || c.symbol)}</div>
+            <div class="modal-co-name" title="${escapeHtml(c.name || c.symbol)}">${escapeHtml(c.name || c.symbol)}</div>
           </div>
           <div class="modal-co-meta">
             <span>${escapeHtml(c.symbol)}</span><span>${escapeHtml(c.exchange || '')}</span><span>${escapeHtml(c.sector || '')}</span>
@@ -3456,7 +3459,7 @@ async function fetchChartData(symbol) {
   const fromDate = new Date();
   fromDate.setFullYear(fromDate.getFullYear() - 3);
   const from = fromDate.toISOString().slice(0, 10);
-  const url = `${SUPABASE_URL}/rest/v1/prices?symbol=eq.${symbol}&date=gte.${from}&order=date.asc&limit=1000&select=date,close`;
+  const url = `${SUPABASE_URL}/rest/v1/prices?symbol=eq.${encodeURIComponent(symbol)}&date=gte.${from}&order=date.asc&limit=1000&select=date,close`;
   try {
     const res = await fetch(url, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' }
@@ -3564,6 +3567,19 @@ function renderChart(data) {
       <line id="chart-crosshair" x1="0" y1="${PT}" x2="0" y2="${PT+cH}" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="3,3" opacity="0"/>
       <circle id="chart-dot" cx="0" cy="0" r="3" fill="${lineColor}" stroke="var(--bg3)" stroke-width="1.5" opacity="0"/>
     </svg>`;
+
+  // Limited-history notice: if the data covers far less than the selected range,
+  // the line can look like a full-range trend when it's really just a few points.
+  // Flag it so a sparse symbol isn't mistaken for a real multi-year chart.
+  const spanDays = (new Date(data[data.length-1].date) - new Date(data[0].date)) / 86400000;
+  const wantDays = RANGE_DAYS[chartRange] || 365;
+  if (data.length < 10 || spanDays < wantDays * 0.5) {
+    const firstDate = new Date(data[0].date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    const note = document.createElement('div');
+    note.className = 'chart-coverage-note';
+    note.textContent = `Limited history — only ${data.length} data point${data.length===1?'':'s'} since ${firstDate}. This stock may be newly listed or its price history hasn't fully loaded.`;
+    container.appendChild(note);
+  }
 
   // Attach hover events
   const svg = document.getElementById('chart-svg');
