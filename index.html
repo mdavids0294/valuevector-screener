@@ -1336,7 +1336,7 @@ let watchlist = new Set();
 let wlViewing = false;
 
 async function supabaseQuery(params, onProgress) {
-  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1455,48 +1455,23 @@ function getLive(c, field) {
 }
 
 // ── Sparklines (6-month price trend) ────────────────────────────────────────
-// One bulk pull from the `prices` table for every visible symbol, grouped
-// client-side. Runs only in the ≤200-results branch (same gate as live prices),
-// so it's one batched fetch per screen run, not one-per-row. Each company gets
-// c._spark = [close, close, …] oldest→newest, which sparklineSVG() draws.
-const SPARK_DAYS = 190;            // ~6 months of trading days, with slack
-const SPARK_SYMBOLS_PER_REQ = 60;  // cap symbols/request to keep the URL short
-async function fetchSparklines(companies, onProgress) {
-  const symbols = companies.map(c => c.symbol).filter(Boolean);
-  if (!symbols.length) return;
-  const fromDate = new Date();
-  fromDate.setDate(fromDate.getDate() - SPARK_DAYS);
-  const from = fromDate.toISOString().slice(0, 10);
-  const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
-
-  const bySymbol = new Map(); // symbol -> [{date, close}]
-  let done = 0;
-  // Chunk the symbol list; within each chunk, page rows 1000 at a time.
-  for (let i = 0; i < symbols.length; i += SPARK_SYMBOLS_PER_REQ) {
-    const chunk = symbols.slice(i, i + SPARK_SYMBOLS_PER_REQ);
-    const inList = chunk.map(s => encodeURIComponent(s)).join(',');
-    const base = `${SUPABASE_URL}/rest/v1/prices?symbol=in.(${inList})&date=gte.${from}&order=symbol.asc,date.asc&select=symbol,date,close`;
-    let offset = 0;
-    while (true) {
-      let batch;
-      try {
-        const r = await fetch(`${base}&offset=${offset}&limit=1000`, { headers: hdrs });
-        if (!r.ok) break;
-        batch = await r.json();
-      } catch(e) { break; }
-      if (!Array.isArray(batch) || batch.length === 0) break;
-      for (const row of batch) {
-        if (!bySymbol.has(row.symbol)) bySymbol.set(row.symbol, []);
-        bySymbol.get(row.symbol).push(row.close);
-      }
-      if (batch.length < 1000) break;
-      offset += 1000;
-    }
-    done = Math.min(i + chunk.length, symbols.length);
-    if (onProgress) onProgress(done, symbols.length);
+// Trends are PRECOMPUTED nightly and stored on companies.spark_6m as a compact
+// comma-separated string of daily closes (oldest→newest). The screener just
+// parses that string — no price-history fetch at render time, so trends show
+// for every row regardless of result count, at near-zero cost.
+// Parsed arrays are cached on the row object (c._sparkParsed) so re-renders
+// (sorting, live-price refresh) don't re-parse.
+function parseSpark(c) {
+  if (!c) return null;
+  if (c._sparkParsed !== undefined) return c._sparkParsed;
+  const raw = c.spark_6m;
+  let arr = null;
+  if (typeof raw === 'string' && raw.length) {
+    arr = raw.split(',').map(Number).filter(v => isFinite(v));
+    if (arr.length < 2) arr = null;
   }
-  // Attach to each company (closes are already oldest→newest from the order by).
-  companies.forEach(c => { c._spark = bySymbol.get(c.symbol) || null; });
+  c._sparkParsed = arr;
+  return arr;
 }
 
 // Build a tiny inline SVG sparkline. Green if the period ended up, red if down,
@@ -1568,7 +1543,7 @@ function fcfSuspect(c) {
 const COLUMN_DEFS = [
   { key:'sector', label:'Sector',        fmt:'sector', get:c=>c.sector||'' },
   { key:'price',  label:'Price',         r:true, live:true, fmt:'price', get:c=>c.live?.price ?? c.price },
-  { key:'spark',  label:'Trend · 6M',    fmt:'spark', noSort:true, get:c=>c._spark },
+  { key:'spark',  label:'Trend · 6M',    fmt:'spark', noSort:true, get:c=>parseSpark(c) },
   { key:'mc',     label:'Mkt cap',       r:true, live:true, fmt:'mc',    get:c=>c.live?.market_cap ?? c.market_cap },
   { key:'pe',     label:'P/E',           r:true, live:true, fmt:'x', guard:v=>v>0&&v<500, get:c=>c.live?.pe ?? c.ratios?.pe_ratio },
   { key:'pb',     label:'P/B',           r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.pb ?? c.ratios?.pb_ratio },
@@ -1706,7 +1681,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeColsMen
 function fmtCell(col, c) {
   if (col.fmt === 'sector') return { text: escapeHtml((c.sector||'').substring(0,16)), cls:'', plain:true };
   if (col.fmt === 'spark') {
-    const svg = sparklineSVG(c._spark);
+    const svg = sparklineSVG(parseSpark(c));
     return { text: svg || '<span class="spark-empty">—</span>', cls:'', raw:true };
   }
   if (col.fmt === 'price') {
@@ -1993,12 +1968,8 @@ async function runScreen() {
       await enrichWithLivePrices(filtered, (done, total) => {
         updateProgress(done, total, `Fetching live prices · ${done}/${total}`);
       });
-      // Sparkline trend data — one bulk pull from `prices` for all visible rows.
-      setStatus('fetching price history...', '');
-      showProgress('Loading trend charts...');
-      await fetchSparklines(filtered, (done, total) => {
-        updateProgress(done, total, `Loading trend charts · ${done}/${total}`);
-      });
+      // Trend sparklines need no fetch here — they're precomputed nightly and
+      // already present on each row as spark_6m (parsed lazily by parseSpark).
     } else {
       setStatus(`${filtered.length} results — narrow filters for live prices`, 'live');
     }
@@ -2105,7 +2076,7 @@ setInterval(refreshPrices, 5 * 60 * 1000);
 // VIEW reuses renderTable() pointed at the saved symbols, with live prices
 // applied through the existing ≤200 path.
 
-const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
 
 function updateWlCount() {
   const el = document.getElementById('wl-count');
@@ -2243,7 +2214,6 @@ async function openWatchlist() {
     if (ordered.length && ordered.length <= 200) {
       setStatus('watchlist · fetching live prices...', '');
       await enrichWithLivePrices(ordered);
-      await fetchSparklines(ordered);
       renderWatchlistRows();
       updateStats(ordered);
     }
