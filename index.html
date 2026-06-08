@@ -359,9 +359,10 @@ td.r{text-align:right}
 .sc-cell-v.suspect::after{content:'⚠';font-size:8px;margin-left:3px;opacity:.7;vertical-align:super}
 /* Row-level "contains an outlier" flag — amber name + ⚠ (table & cards). */
 .co-name.row-suspect{color:var(--amber)}
-.co-name.row-suspect::after{content:'⚠';font-size:9px;margin-left:4px;opacity:.8;vertical-align:super}
+.co-name.row-suspect::before{content:'⚠ ';font-size:9px;opacity:.8;vertical-align:super}
 .sc-name.row-suspect{color:var(--amber)}
-.sc-name.row-suspect::after{content:'⚠';font-size:9px;margin-left:4px;opacity:.8;vertical-align:super}
+.sc-name.row-suspect::before{content:'⚠ ';font-size:9px;opacity:.8;vertical-align:super}
+.data-issue{color:var(--amber);font-family:var(--mono);font-size:9px;letter-spacing:.04em;margin-left:6px;opacity:.85}
 
 .sheet-grabber{display:none}
 .sort-bar{display:none;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0}
@@ -1855,7 +1856,7 @@ function renderTable(data) {
       : (c.name||'');
     return `<tr onclick="openModal('${c.symbol}')">
       <td class="wl-cell"><button class="wl-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button></td>
-      <td><span class="co-name${susp?' row-suspect':''}" title="${escapeHtml(nameTitle)}">${escapeHtml(c.name||'')}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
+      <td><span class="co-name${susp?' row-suspect':''}" title="${escapeHtml(nameTitle)}">${escapeHtml(c.name||'')}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}${susp?'<span class="data-issue">Potential Data Issue</span>':''}</span></td>
       ${cells}
     </tr>`;
   }).join('');
@@ -1903,7 +1904,7 @@ function renderCards(sorted) {
         <button class="sc-star${on?' on':''}" data-sym="${c.symbol}" aria-label="${on?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${on?'★':'☆'}</button>
         <div class="sc-id">
           <div class="sc-name${susp?' row-suspect':''}"${nameTitle?` title="${nameTitle}"`:''}>${escapeHtml(c.name||'')}</div>
-          <div class="sc-meta">${escapeHtml(meta)}</div>
+          <div class="sc-meta">${susp?'<span class="data-issue" style="margin-left:0;margin-right:6px">Potential Data Issue</span>':''}${escapeHtml(meta)}</div>
         </div>
         <div class="sc-px">
           <div class="sc-price">${priceFmt}</div>
