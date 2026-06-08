@@ -331,7 +331,7 @@ td.r{text-align:right}
 .co-name{font-weight:500;color:var(--text);font-size:13px;display:block;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .co-ticker{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:1px}
 .num{font-family:var(--mono);font-size:11px}
-.num.suspect{color:var(--red)}
+.num.suspect{color:var(--amber)}
 .num.suspect::after{content:'⚠';font-size:8px;margin-left:3px;opacity:.7;vertical-align:super}
 .chg-up{color:#4ade80;font-family:var(--mono);font-size:10px}
 .chg-dn{color:var(--red);font-family:var(--mono);font-size:10px}
@@ -355,8 +355,13 @@ td.r{text-align:right}
 .sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 6px;margin-top:13px;padding-top:12px;border-top:0.5px solid var(--border)}
 .sc-cell-l{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
 .sc-cell-v{font-family:var(--mono);font-size:13px;color:var(--text)}
-.sc-cell-v.suspect{color:var(--red)}
+.sc-cell-v.suspect{color:var(--amber)}
 .sc-cell-v.suspect::after{content:'⚠';font-size:8px;margin-left:3px;opacity:.7;vertical-align:super}
+/* Row-level "contains an outlier" flag — amber name + ⚠ (table & cards). */
+.co-name.row-suspect{color:var(--amber)}
+.co-name.row-suspect::after{content:'⚠';font-size:9px;margin-left:4px;opacity:.8;vertical-align:super}
+.sc-name.row-suspect{color:var(--amber)}
+.sc-name.row-suspect::after{content:'⚠';font-size:9px;margin-left:4px;opacity:.8;vertical-align:super}
 
 .sheet-grabber{display:none}
 .sort-bar{display:none;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0}
@@ -468,6 +473,7 @@ a{color:var(--accent);text-decoration:none}
 .modal-ratio-val{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:500}
 .modal-ratio-val.pos{color:var(--accent)}
 .modal-ratio-val.neg{color:var(--red)}
+.modal-ratio-val.suspect{color:var(--amber)}
 .modal-ratio-grid-h{display:grid;border:0.5px solid var(--border);border-radius:6px;overflow:hidden}
 .modal-ratio-grid-h .modal-ratio-row{flex-direction:column;align-items:flex-start;gap:3px;border-bottom:none;border-right:0.5px solid var(--border)}
 .modal-ratio-grid-h .modal-ratio-row:last-child{border-right:none}
@@ -1336,7 +1342,7 @@ let watchlist = new Set();
 let wlViewing = false;
 
 async function supabaseQuery(params, onProgress) {
-  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1529,6 +1535,63 @@ function fcfSuspect(c) {
   return false;
 }
 
+// ── Outlier / "implausible data" detection ───────────────────────────────────
+// Small/mid-cap source data routinely produces ratios that are arithmetically
+// real but practically meaningless — a near-zero denominator (tiny FCF, near-
+// zero book value, micro share count) blows the ratio up to absurd magnitudes
+// (FCF yields of 35,000%, etc.). These pollute sorts and mislead at a glance.
+//
+// SANITY maps a COLUMN KEY to a predicate over the raw value: returns true when
+// the value is implausibly extreme = "verify this, don't trust it." Thresholds
+// are deliberately generous (only flag the genuinely absurd, not the merely
+// high) and are the single tuning point — adjust here, nothing else changes.
+// Columns wire in by setting `suspect:'@key'` (resolved lazily in colSuspect),
+// or a custom function (FCF uses fcfSuspect for its smarter revenue check).
+const SANITY = {
+  pe:     v => v > 400,        // P/E over ~400 is almost always a denominator artifact
+  pb:     v => v > 400,        // near-zero book value
+  ps:     v => v > 100,
+  pfcf:   v => v > 1000,       // tiny FCF base (FCF-family also uses fcfSuspect)
+  ev:     v => v > 200,        // EV/EBITDA
+  ev_rev: v => v > 100,
+  fcfy:   v => Math.abs(v) > 1,        // > 100% yield — impossible
+  ey:     v => Math.abs(v) > 1,        // > 100% earnings yield
+  de:     v => v > 25,         // debt/equity — extreme leverage or bad equity base
+  cr:     v => v > 50,         // current ratio
+  roe:    v => Math.abs(v) > 10,       // > 1000% ROE — near-zero equity base
+  roa:    v => Math.abs(v) > 5,        // > 500% ROA
+};
+
+// Is THIS column's value suspect for THIS row? Honors an explicit suspect fn on
+// the column (e.g. fcfSuspect) first; otherwise falls back to the SANITY rule
+// keyed by the column's own key. Only meaningful for numeric columns with a
+// real, guard-passing value.
+function colSuspect(col, c) {
+  if (!col) return false;
+  if (typeof col.suspect === 'function') return col.suspect(c);
+  const rule = SANITY[col.key];
+  if (!rule) return false;
+  const v = col.get(c);
+  if (v === null || v === undefined || isNaN(v)) return false;
+  const passes = col.guard ? col.guard(v) : true;
+  if (!passes) return false;
+  try { return !!rule(v); } catch { return false; }
+}
+
+// Does the row have ANY suspect stat among the currently visible columns? Drives
+// the amber ⚠ on the company name. Scoped to visibleCols so the row-level flag
+// reflects what the user can actually see (a hidden bad column won't flag a row
+// whose visible numbers are all fine).
+function rowSuspect(c) {
+  const cols = (typeof visibleCols !== 'undefined' ? visibleCols : [])
+    .map(k => COLUMN_MAP[k]).filter(Boolean);
+  for (const col of cols) {
+    if (col.noSort && col.fmt === 'spark') continue; // sparkline has no scalar value
+    if (colSuspect(col, c)) return true;
+  }
+  return false;
+}
+
 // ── Customizable results-table columns ──────────────────────────────────────
 // Single source of truth for every selectable column. Each def mirrors the
 // modal-field shape ({key,label,get,fmt,guard,color,suspect}) so formatting +
@@ -1550,7 +1613,7 @@ const COLUMN_DEFS = [
   { key:'ps',     label:'P/S',           r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ps ?? c.ratios?.ps_ratio },
   { key:'pfcf',   label:'P/FCF',         r:true,            fmt:'x', guard:v=>v>0,        get:c=>c.live?.pfcf ?? c.ratios?.pfcf_ratio, suspect:fcfSuspect },
   { key:'ev',     label:'EV/EBITDA',     r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ev_ebitda ?? c.ratios?.ev_ebitda },
-  { key:'ev_rev', label:'EV/Rev',        r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ev_revenue },
+  { key:'ev_rev', label:'EV/Rev',        r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ev_revenue ?? c.ratios?.ev_revenue },
   { key:'fcfy',   label:'FCF yield',     r:true, live:true, fmt:'%', color:'pos-good', guard:v=>v>0, get:c=>c.live?.fcf_yield ?? c.ratios?.fcf_yield, suspect:fcfSuspect },
   { key:'ey',     label:'Earnings yield',r:true, live:true, fmt:'%', color:'pos-good',   get:c=>c.live?.earnings_yield ?? c.ratios?.earnings_yield },
   { key:'gm',     label:'Gross margin',  r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.gross_margin },
@@ -1695,7 +1758,7 @@ function fmtCell(col, c) {
   const v = col.get(c);
   const passes = col.guard ? col.guard(v) : true;
   const ok = v !== null && v !== undefined && !isNaN(v) && passes;
-  const suspect = ok && col.suspect ? col.suspect(c) : false;
+  const suspect = ok ? colSuspect(col, c) : false;
   let text = '—';
   if (ok) {
     if (col.fmt === 'x') text = v.toFixed(v < 10 ? 2 : 1) + '×';
@@ -1739,12 +1802,16 @@ function renderTable(data) {
     }
     const av = colSortVal(sortDef, a), bv = colSortVal(sortDef, b);
 
-    // No-value rows always sink to the bottom, independent of sort direction.
-    // colSortVal returns null for missing/invalid numbers and '' for missing
-    // text (sector). We test those here, BEFORE multiplying by sortDir, so the
-    // direction flip can't drag empties to the top.
-    const aEmpty = (av === null || av === '');
-    const bEmpty = (bv === null || bv === '');
+    // Two kinds of rows sink to the bottom in BOTH directions:
+    //   1. no value (colSortVal → null, or '' for text)
+    //   2. a value flagged as an extreme outlier FOR THIS column (colSuspect) —
+    //      so a junk 35,000% FCF yield can't hijack the top of a descending
+    //      sort. This is scoped to the sorted column only: a row with a bad FCF
+    //      number still sorts normally when you sort by P/E.
+    // We test these BEFORE multiplying by sortDir, so the direction flip can't
+    // drag them to the top.
+    const aEmpty = (av === null || av === '') || colSuspect(sortDef, a);
+    const bEmpty = (bv === null || bv === '') || colSuspect(sortDef, b);
     if (aEmpty && bEmpty) return 0;
     if (aEmpty) return 1;   // a after b
     if (bEmpty) return -1;  // a before b
@@ -1775,6 +1842,7 @@ function renderTable(data) {
     }).join('');
 
   const tbody = sorted.map(c => {
+    const susp = rowSuspect(c);
     const cells = cols.map(col => {
       const { text, cls, raw, plain } = fmtCell(col, c);
       const align = col.r ? ' class="r"' : '';
@@ -1782,9 +1850,12 @@ function renderTable(data) {
       if (plain) return `<td><span style="font-size:10px;color:var(--text3)">${text}</span></td>`;
       return `<td${align}><span class="num${cls ? ' ' + cls : ''}">${text}</span></td>`;
     }).join('');
+    const nameTitle = susp
+      ? `${c.name||''} — contains an extreme/implausible value; verify before relying on it`
+      : (c.name||'');
     return `<tr onclick="openModal('${c.symbol}')">
       <td class="wl-cell"><button class="wl-star${isWatched(c.symbol)?' on':''}" data-sym="${c.symbol}" title="${isWatched(c.symbol)?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${isWatched(c.symbol)?'★':'☆'}</button></td>
-      <td><span class="co-name" title="${escapeHtml(c.name||'')}">${escapeHtml(c.name||'')}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
+      <td><span class="co-name${susp?' row-suspect':''}" title="${escapeHtml(nameTitle)}">${escapeHtml(c.name||'')}</span><span class="co-ticker">${escapeHtml(c.symbol||'')}</span></td>
       ${cells}
     </tr>`;
   }).join('');
@@ -1820,11 +1891,18 @@ function renderCards(sorted) {
     const on   = isWatched(c.symbol);
     const sector = (c.sector || '').trim();
     const meta = c.symbol + (sector ? ' · ' + sector : '');
+    const susp = rowSuspect(c);
+    // Per-cell flags for the six triage metrics, using the same column rules.
+    const peSus  = colSuspect(COLUMN_MAP.pe, c);
+    const pbSus  = colSuspect(COLUMN_MAP.pb, c);
+    const evSus  = colSuspect(COLUMN_MAP.ev, c);
+    const deSus  = colSuspect(COLUMN_MAP.de, c);
+    const nameTitle = susp ? 'Contains an extreme/implausible value — verify before relying on it' : '';
     return `<div class="stock-card" onclick="openModal('${c.symbol}')">
       <div class="sc-top">
         <button class="sc-star${on?' on':''}" data-sym="${c.symbol}" aria-label="${on?'Remove from watchlist':'Add to watchlist'}" onclick="toggleWatch('${c.symbol}',event)">${on?'★':'☆'}</button>
         <div class="sc-id">
-          <div class="sc-name">${escapeHtml(c.name||'')}</div>
+          <div class="sc-name${susp?' row-suspect':''}"${nameTitle?` title="${nameTitle}"`:''}>${escapeHtml(c.name||'')}</div>
           <div class="sc-meta">${escapeHtml(meta)}</div>
         </div>
         <div class="sc-px">
@@ -1833,12 +1911,12 @@ function renderCards(sorted) {
         </div>
       </div>
       <div class="sc-grid">
-        <div><div class="sc-cell-l">P/E</div><div class="sc-cell-v">${pe}</div></div>
-        <div><div class="sc-cell-l">P/B</div><div class="sc-cell-v">${pb}</div></div>
+        <div><div class="sc-cell-l">P/E</div><div class="sc-cell-v${peSus?' suspect':''}">${pe}</div></div>
+        <div><div class="sc-cell-l">P/B</div><div class="sc-cell-v${pbSus?' suspect':''}">${pb}</div></div>
         <div><div class="sc-cell-l">Gross mgn</div><div class="sc-cell-v">${gm}</div></div>
         <div><div class="sc-cell-l">FCF yld</div><div class="sc-cell-v${fcfSus?' suspect':''}">${fcfy}</div></div>
-        <div><div class="sc-cell-l">EV/EBITDA</div><div class="sc-cell-v">${ev}</div></div>
-        <div><div class="sc-cell-l">D/E</div><div class="sc-cell-v">${de}</div></div>
+        <div><div class="sc-cell-l">EV/EBITDA</div><div class="sc-cell-v${evSus?' suspect':''}">${ev}</div></div>
+        <div><div class="sc-cell-l">D/E</div><div class="sc-cell-v${deSus?' suspect':''}">${de}</div></div>
       </div>
     </div>`;
   }).join('');
@@ -2091,7 +2169,7 @@ setInterval(refreshPrices, 5 * 60 * 1000);
 // VIEW reuses renderTable() pointed at the saved symbols, with live prices
 // applied through the existing ≤200 path.
 
-const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
 
 function updateWlCount() {
   const el = document.getElementById('wl-count');
@@ -2869,7 +2947,7 @@ async function selectResult(symbol) {
   if (existing) { openModal(symbol); return; }
   // Fetch full data
   try {
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -2899,7 +2977,7 @@ async function runSearchEnter(query, results) {
   try {
     const symbols = results.map(c => c.symbol);
     const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -3082,7 +3160,7 @@ const MODAL_SECTIONS = [
       { label: 'P/S',        get: c => c.live?.ps       ?? c.ratios?.ps_ratio,    fmt: 'x',  guard: v => v > 0 },
       { label: 'P/FCF',      get: c => c.live?.pfcf     ?? c.ratios?.pfcf_ratio,  fmt: 'x',  guard: v => v > 0, suspect: fcfSuspect },
       { label: 'EV/EBITDA',  get: c => c.live?.ev_ebitda ?? c.ratios?.ev_ebitda,  fmt: 'x',  guard: v => v > 0 },
-      { label: 'EV/Rev',     get: c => c.live?.ev_revenue,                         fmt: 'x',  guard: v => v > 0 },
+      { label: 'EV/Rev',     get: c => c.live?.ev_revenue ?? c.ratios?.ev_revenue, fmt: 'x',  guard: v => v > 0 },
       { label: 'FCF yield',  get: c => c.live?.fcf_yield ?? c.ratios?.fcf_yield,  fmt: '%',  color: 'pos-good', suspect: fcfSuspect },
       { label: 'Earnings yield', get: c => c.live?.earnings_yield ?? c.ratios?.earnings_yield, fmt: '%', color: 'pos-good' },
     ]
@@ -3186,12 +3264,12 @@ function renderModalSection(section, c) {
     const passes = f.guard ? f.guard(val) : true;
     const formatted = (val !== null && val !== undefined && !isNaN(val) && passes) ? fmtModalVal(val, f.fmt) : null;
     const suspect = f.suspect ? f.suspect(c) : false;
-    const cls = formatted ? (suspect ? 'neg' : colorClass(val, f.color)) : '';
+    const cls = formatted ? (suspect ? 'suspect' : colorClass(val, f.color)) : '';
     const display = formatted ?? '—';
     const warn = (formatted && suspect) ? ' ⚠' : '';
     return `<div class="modal-ratio-row">
       <span class="modal-ratio-label">${f.label}</span>
-      <span class="modal-ratio-val ${cls}" ${suspect ? 'title="Implausible vs revenue — likely bad source data"' : ''}>${display}${warn}</span>
+      <span class="modal-ratio-val ${cls}" ${suspect ? 'title="Extreme/implausible value — likely bad source data; verify before relying on it"' : ''}>${display}${warn}</span>
     </div>`;
   }).join('');
   return `<div class="${section.full ? 'modal-section-full' : ''}">
