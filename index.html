@@ -1632,17 +1632,30 @@ const COLUMN_DEFS = [
 ];
 const COLUMN_MAP = Object.fromEntries(COLUMN_DEFS.map(d => [d.key, d]));
 
-// Default visible columns, in order. NOTE: layout is NOT persisted between
-// sessions by design — it resets to this on every page load. To make it sticky
-// per-device later, swap these two helpers to read/write localStorage:
-//   load: JSON.parse(localStorage.getItem('vv_cols')) || DEFAULT_COLS.slice()
-//   save: localStorage.setItem('vv_cols', JSON.stringify(visibleCols))  // in setVisibleCols
+// Default visible columns, in order. Layout IS now persisted per-device via
+// localStorage (key 'vv_cols'): loaded on boot, saved on every change.
 const DEFAULT_COLS = ['sector','price','spark','mc','pe','pb','gm','nm','fcfy','ev','ev_rev','de'];
-let visibleCols = DEFAULT_COLS.slice();
+const COLS_STORAGE_KEY = 'vv_cols';
+function loadStoredCols() {
+  try {
+    const raw = localStorage.getItem(COLS_STORAGE_KEY);
+    if (!raw) return DEFAULT_COLS.slice();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_COLS.slice();
+    const seen = new Set();
+    const clean = parsed.filter(k => typeof k === 'string' && COLUMN_MAP[k] && !seen.has(k) && seen.add(k));
+    return clean.length ? clean : DEFAULT_COLS.slice();
+  } catch (e) { return DEFAULT_COLS.slice(); }
+}
+function saveStoredCols() {
+  try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(visibleCols)); } catch (e) {}
+}
+let visibleCols = loadStoredCols();
 function setVisibleCols(keys) {
   // keep only known keys, dedupe, preserve given order
   const seen = new Set();
   visibleCols = keys.filter(k => COLUMN_MAP[k] && !seen.has(k) && seen.add(k));
+  saveStoredCols();
   // If we're sorted by a column that's now hidden, fall back to Company.
   if (sortCol !== 'name' && !visibleCols.includes(sortCol)) { sortCol = 'name'; sortDir = 1; syncSortBar(); }
   if (lastResults && lastResults.length) renderTable(lastResults);
