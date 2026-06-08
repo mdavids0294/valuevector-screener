@@ -1343,7 +1343,7 @@ let watchlist = new Set();
 let wlViewing = false;
 
 async function supabaseQuery(params, onProgress) {
-  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1426,6 +1426,7 @@ async function enrichWithLivePrices(companies, onProgress) {
       const livepfcf   = r.fcf_per_share > 0 ? livePrice / r.fcf_per_share : null;
       const livefcfy   = r.fcf_per_share > 0 ? r.fcf_per_share / livePrice : null;
       const liveey     = r.eps > 0 ? r.eps / livePrice : null;
+      const livefwdpe  = r.fwd_eps > 0 ? livePrice / r.fwd_eps : null;
       const totalEquity   = r.book_value_per_share * sharesOut;
       const totalDebt     = r.debt_to_equity != null ? r.debt_to_equity * totalEquity : 0;
       const totalCash     = r.cash_per_share * sharesOut;
@@ -1449,6 +1450,7 @@ async function enrichWithLivePrices(companies, onProgress) {
         earnings_yield: liveey,
         ev_ebitda:      liveEvEbitda,
         ev_revenue:     liveEvRev,
+        forward_pe:     livefwdpe,
       };
     });
     setStatus(`fetching prices... ${Math.min(i + BATCH, results.length)}/${results.length}`, '');
@@ -1550,6 +1552,7 @@ function fcfSuspect(c) {
 // or a custom function (FCF uses fcfSuspect for its smarter revenue check).
 const SANITY = {
   pe:     v => v > 400,        // P/E over ~400 is almost always a denominator artifact
+  fpe:    v => v > 400,        // forward P/E — same denominator-artifact guard as trailing
   pb:     v => v > 400,        // near-zero book value
   ps:     v => v > 100,
   pfcf:   v => v > 1000,       // tiny FCF base (FCF-family also uses fcfSuspect)
@@ -1617,6 +1620,7 @@ const COLUMN_DEFS = [
   { key:'ev_rev', label:'EV/Rev',        r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.ev_revenue ?? c.ratios?.ev_revenue },
   { key:'fcfy',   label:'FCF yield',     r:true, live:true, fmt:'%', color:'pos-good', guard:v=>v>0, get:c=>c.live?.fcf_yield ?? c.ratios?.fcf_yield, suspect:fcfSuspect },
   { key:'ey',     label:'Earnings yield',r:true, live:true, fmt:'%', color:'pos-good',   get:c=>c.live?.earnings_yield ?? c.ratios?.earnings_yield },
+  { key:'fpe',    label:'Fwd P/E',       r:true, live:true, fmt:'x', guard:v=>v>0,        get:c=>c.live?.forward_pe ?? c.ratios?.forward_pe },
   { key:'gm',     label:'Gross margin',  r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.gross_margin },
   { key:'em',     label:'EBITDA margin', r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.ebitda_margin },
   { key:'ebm',    label:'EBIT margin',   r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.ebit_margin },
@@ -2183,7 +2187,7 @@ setInterval(refreshPrices, 5 * 60 * 1000);
 // VIEW reuses renderTable() pointed at the saved symbols, with live prices
 // applied through the existing ≤200 path.
 
-const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
 
 function updateWlCount() {
   const el = document.getElementById('wl-count');
@@ -2961,7 +2965,7 @@ async function selectResult(symbol) {
   if (existing) { openModal(symbol); return; }
   // Fetch full data
   try {
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -2991,7 +2995,7 @@ async function runSearchEnter(query, results) {
   try {
     const symbols = results.map(c => c.symbol);
     const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -3170,6 +3174,7 @@ const MODAL_SECTIONS = [
     title: 'Valuation',
     fields: [
       { label: 'P/E',        get: c => c.live?.pe       ?? c.ratios?.pe_ratio,    fmt: 'x',  guard: v => v > 0 && v < 500 },
+      { label: 'Fwd P/E',    get: c => c.live?.forward_pe ?? c.ratios?.forward_pe, fmt: 'x',  guard: v => v > 0 },
       { label: 'P/B',        get: c => c.live?.pb       ?? c.ratios?.pb_ratio,    fmt: 'x',  guard: v => v > 0 },
       { label: 'P/S',        get: c => c.live?.ps       ?? c.ratios?.ps_ratio,    fmt: 'x',  guard: v => v > 0 },
       { label: 'P/FCF',      get: c => c.live?.pfcf     ?? c.ratios?.pfcf_ratio,  fmt: 'x',  guard: v => v > 0, suspect: fcfSuspect },
