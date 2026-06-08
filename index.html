@@ -1719,8 +1719,12 @@ function colSortVal(col, c) {
   const v = col.get(c);
   const passes = col.guard ? col.guard(v) : true;
   if (v === null || v === undefined || isNaN(v) || !passes) {
-    // push to the end regardless of direction handled by renderTable's *dir
-    return col.lowGoodBottom ? -Infinity : 9e15;
+    // Return null as an explicit "no value" marker. renderTable's comparator
+    // forces these to the bottom in BOTH sort directions. (Previously this
+    // returned a fixed sentinel like 9e15, which the comparator then multiplied
+    // by sortDir — so on a descending sort the sentinel became the "largest"
+    // value and floated nulls to the TOP. That was the null-sorts-first bug.)
+    return null;
   }
   return v;
 }
@@ -1734,6 +1738,17 @@ function renderTable(data) {
       return (a.name||'').localeCompare(b.name||'') * sortDir;
     }
     const av = colSortVal(sortDef, a), bv = colSortVal(sortDef, b);
+
+    // No-value rows always sink to the bottom, independent of sort direction.
+    // colSortVal returns null for missing/invalid numbers and '' for missing
+    // text (sector). We test those here, BEFORE multiplying by sortDir, so the
+    // direction flip can't drag empties to the top.
+    const aEmpty = (av === null || av === '');
+    const bEmpty = (bv === null || bv === '');
+    if (aEmpty && bEmpty) return 0;
+    if (aEmpty) return 1;   // a after b
+    if (bEmpty) return -1;  // a before b
+
     return typeof av === 'string' ? av.localeCompare(bv) * sortDir : (av - bv) * sortDir;
   });
 
