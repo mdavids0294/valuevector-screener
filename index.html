@@ -537,6 +537,15 @@ a{color:var(--accent);text-decoration:none}
 .tr-dim{color:var(--text3);text-align:right;font-size:9px}
 .trade-empty{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
 .trade-loading{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
+.fin-history-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;border:0.5px solid var(--border);border-top:none}
+.fin-history-table th{text-align:right;padding:6px 8px;color:var(--text3);font-weight:500;border-bottom:0.5px solid var(--border)}
+.fin-history-table th:first-child{text-align:left}
+.fin-history-table td{text-align:right;padding:5px 8px;border-bottom:0.5px solid var(--border)}
+.fin-history-table td.fin-metric{text-align:left;color:var(--text2)}
+.fin-history-table tr:last-child td{border-bottom:none}
+.fin-history-table .num.pos{color:var(--accent)}
+.fin-history-table .num.neg{color:var(--red)}
+.fin-history-table .num.suspect{color:#f0b030}
 
 /* ── ONBOARDING SPOTLIGHT TOUR ─────────────────────────────────────────────── */
 /* Help (?) button — lives in header-right, opens the tour on demand. */
@@ -1343,7 +1352,7 @@ let watchlist = new Set();
 let wlViewing = false;
 
 async function supabaseQuery(params, onProgress) {
-  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
+  const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts,revenue_growth_1y,revenue_growth_3y,eps_growth_1y,eps_growth_3y,ni_growth_1y,ni_growth_3y,ebitda_growth_1y,ebitda_growth_3y,fcf_growth_1y,fcf_growth_3y)`;
   const hdrs = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -1564,6 +1573,13 @@ const SANITY = {
   cr:     v => v > 50,         // current ratio
   roe:    v => Math.abs(v) > 10,       // > 1000% ROE — near-zero equity base
   roa:    v => Math.abs(v) > 5,        // > 500% ROA
+  // Growth: a YoY/CAGR magnitude over ~1000% almost always means a tiny base
+  // year (the small-cap loss-to-profit / near-zero denominator case).
+  rg1: v => Math.abs(v) > 10, rg3: v => Math.abs(v) > 10,
+  epsg1: v => Math.abs(v) > 10, epsg3: v => Math.abs(v) > 10,
+  nig1: v => Math.abs(v) > 10, nig3: v => Math.abs(v) > 10,
+  ebg1: v => Math.abs(v) > 10, ebg3: v => Math.abs(v) > 10,
+  fcfg1: v => Math.abs(v) > 10, fcfg3: v => Math.abs(v) > 10,
 };
 
 // Is THIS column's value suspect for THIS row? Honors an explicit suspect fn on
@@ -1633,6 +1649,16 @@ const COLUMN_DEFS = [
   { key:'bvps',   label:'Book / share',  r:true,            fmt:'$',                      get:c=>c.ratios?.book_value_per_share },
   { key:'dy',     label:'Div yield',     r:true,            fmt:'%', color:'pos-good',    get:c=>c.ratios?.dividend_yield },
   { key:'beta',   label:'Beta',          r:true,            fmt:'num',                    get:c=>c.beta },
+  { key:'rg1',    label:'Rev gr 1Y',     r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.revenue_growth_1y },
+  { key:'rg3',    label:'Rev CAGR 3Y',   r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.revenue_growth_3y },
+  { key:'epsg1',  label:'EPS gr 1Y',     r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.eps_growth_1y },
+  { key:'epsg3',  label:'EPS CAGR 3Y',   r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.eps_growth_3y },
+  { key:'nig1',   label:'NI gr 1Y',      r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.ni_growth_1y },
+  { key:'nig3',   label:'NI CAGR 3Y',    r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.ni_growth_3y },
+  { key:'ebg1',   label:'EBITDA gr 1Y',  r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.ebitda_growth_1y },
+  { key:'ebg3',   label:'EBITDA CAGR 3Y',r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.ebitda_growth_3y },
+  { key:'fcfg1',  label:'FCF gr 1Y',     r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.fcf_growth_1y },
+  { key:'fcfg3',  label:'FCF CAGR 3Y',   r:true, fmt:'%', color:'pos-good', get:c=>c.ratios?.fcf_growth_3y },
 ];
 const COLUMN_MAP = Object.fromEntries(COLUMN_DEFS.map(d => [d.key, d]));
 
@@ -2187,7 +2213,7 @@ setInterval(refreshPrices, 5 * 60 * 1000);
 // VIEW reuses renderTable() pointed at the saved symbols, with live prices
 // applied through the existing ≤200 path.
 
-const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
+const WL_SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,spark_6m,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts,revenue_growth_1y,revenue_growth_3y,eps_growth_1y,eps_growth_3y,ni_growth_1y,ni_growth_3y,ebitda_growth_1y,ebitda_growth_3y,fcf_growth_1y,fcf_growth_3y)`;
 
 function updateWlCount() {
   const el = document.getElementById('wl-count');
@@ -2965,7 +2991,7 @@ async function selectResult(symbol) {
   if (existing) { openModal(symbol); return; }
   // Fetch full data
   try {
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts,revenue_growth_1y,revenue_growth_3y,eps_growth_1y,eps_growth_3y,ni_growth_1y,ni_growth_3y,ebitda_growth_1y,ebitda_growth_3y,fcf_growth_1y,fcf_growth_3y)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=eq.${symbol}&limit=1`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -2995,7 +3021,7 @@ async function runSearchEnter(query, results) {
   try {
     const symbols = results.map(c => c.symbol);
     const inList = '(' + symbols.map(s => '"' + s + '"').join(',') + ')';
-    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts)`;
+    const SELECT = `symbol,name,sector,industry,exchange,market_cap,volume,avg_volume,price,description,ceo,employees,website,city,state,ipo_date,beta,image,ratios!ratios_symbol_fkey(pe_ratio,pb_ratio,ps_ratio,pfcf_ratio,fcf_yield,ev_ebitda,ev_revenue,gross_margin,net_margin,ebitda_margin,ebit_margin,roe,roa,debt_to_equity,current_ratio,dividend_yield,eps,book_value_per_share,fcf_per_share,revenue_per_share,cash_per_share,fwd_eps,forward_pe,num_analysts,revenue_growth_1y,revenue_growth_3y,eps_growth_1y,eps_growth_3y,ni_growth_1y,ni_growth_3y,ebitda_growth_1y,ebitda_growth_3y,fcf_growth_1y,fcf_growth_3y)`;
     const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
     const r = await fetch(`${SUPABASE_URL}/rest/v1/companies?select=${SELECT}&symbol=in.${inList}`, { headers: hdrs });
     if (!r.ok) throw new Error();
@@ -3297,6 +3323,56 @@ function renderModalSection(section, c) {
   </div>`;
 }
 
+// ── Per-year fundamentals history (from the `financials` JSONB table) ────────
+// Lazy-fetched on modal open (like chart data). Shows year-over-year growth
+// for each stat across the stored fiscal years.
+async function fetchFinancials(symbol) {
+  try {
+    const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept': 'application/json' };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/financials?select=date,fiscal_year,income,cash_flow&symbol=eq.${encodeURIComponent(symbol)}&order=date.asc`, { headers: hdrs });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length ? rows : null;
+  } catch (e) { return null; }
+}
+
+// % growth, null when prior base <= 0 (mirrors the pipeline's growth guards).
+function pyGrowth(curr, prev) {
+  if (curr == null || prev == null || prev <= 0) return null;
+  return curr / prev - 1;
+}
+function pyFmt(g) {
+  if (g == null || isNaN(g)) return '<span class="num">—</span>';
+  const cls = g > 0 ? 'pos' : g < 0 ? 'neg' : '';
+  const sus = Math.abs(g) > 10 ? ' suspect' : '';
+  return `<span class="num ${cls}${sus}">${(g*100).toFixed(0)}%</span>`;
+}
+
+// Build the per-year growth table HTML from financials rows (oldest→newest).
+function renderFinancialsHistory(rows) {
+  if (!rows || rows.length < 2) {
+    return '<div class="trade-loading">Not enough historical data.</div>';
+  }
+  const metrics = [
+    { label: 'Revenue',    pick: row => row.income?.revenue },
+    { label: 'EPS',        pick: row => row.income?.eps },
+    { label: 'Net income', pick: row => row.income?.netIncome },
+    { label: 'EBITDA',     pick: row => row.income?.ebitda },
+    { label: 'FCF',        pick: row => row.cash_flow?.freeCashFlow },
+  ];
+  // Year headers: skip the first year (no prior to grow from).
+  const yrs = rows.map(r => r.fiscal_year ?? (r.date ? String(r.date).slice(0,4) : '—'));
+  const head = '<th>Metric</th>' + yrs.slice(1).map((y, i) => `<th>${yrs[i]}→${y}</th>`).join('');
+  const body = metrics.map(m => {
+    const cells = rows.slice(1).map((row, i) => {
+      const g = pyGrowth(Number(m.pick(row)), Number(m.pick(rows[i])));
+      return `<td>${pyFmt(g)}</td>`;
+    }).join('');
+    return `<tr><td class="fin-metric">${m.label}</td>${cells}</tr>`;
+  }).join('');
+  return `<table class="fin-history-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
 function openModal(symbol) {
   const c = lastResults.find(r => r.symbol === symbol);
   if (!c) return;
@@ -3397,6 +3473,15 @@ function openModal(symbol) {
           <div class="chart-tooltip" id="chart-tooltip"></div>
         </div>
         <div class="modal-sections">${sectionsHtml}</div>
+        <div class="trade-sec" id="fin-history-sec">
+          <div class="trade-sec-header" onclick="toggleTradeSec('fin-history')">
+            <div class="trade-sec-left">
+              <span class="trade-sec-title">Growth history (year over year)</span>
+            </div>
+            <span class="trade-chevron" id="fin-history-chevron">▶</span>
+          </div>
+          <div id="fin-history-body" style="display:none"><div class="trade-loading">Loading…</div></div>
+        </div>
         <div class="trade-sec" id="insider-sec">
           <div class="trade-sec-header" onclick="toggleTradeSec('insider')">
             <div class="trade-sec-left">
@@ -3444,6 +3529,10 @@ function openModal(symbol) {
   });
   fetchInsiderTrades(c.symbol);
   fetchCongressTrades(c.symbol);
+  fetchFinancials(c.symbol).then(rows => {
+    const body = document.getElementById('fin-history-body');
+    if (body) body.innerHTML = renderFinancialsHistory(rows);
+  });
 }
 
 // ── CHART ────────────────────────────────────────────────────────────────────
