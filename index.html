@@ -3539,6 +3539,35 @@ function openModal(symbol) {
   fetchFinancials(c.symbol).then(rows => {
     const body = document.getElementById('fin-history-body');
     if (body) body.innerHTML = renderFinancialsHistory(rows);
+    // ── TEMP DIAGNOSTIC v2 — which container scrolls horizontally? ──
+    setTimeout(() => {
+      console.log('%c[DIAG v2] walking modal containers', 'color:#c8f59a;font-weight:bold');
+      const ids = ['modal-backdrop'];
+      const rows2 = [];
+      // every element from backdrop down to body, plus anything that scrolls
+      document.querySelectorAll('#modal-backdrop, #modal-backdrop *').forEach(el => {
+        const sw = el.scrollWidth, cw = el.clientWidth;
+        if (sw > cw + 0.5) {
+          rows2.push({
+            tag: el.tagName.toLowerCase(),
+            cls: (el.className||'(none)').toString().slice(0,28),
+            id: el.id||'',
+            scrollW: sw, clientW: cw, over: sw-cw,
+            overflowX: getComputedStyle(el).overflowX
+          });
+        }
+      });
+      if (!rows2.length) {
+        console.log('  NOTHING inside #modal-backdrop scrolls horizontally.');
+        console.log('  document.documentElement scrollW/clientW:', document.documentElement.scrollWidth, document.documentElement.clientWidth);
+        console.log('  body scrollW/clientW:', document.body.scrollWidth, document.body.clientWidth);
+        const bd = document.getElementById('modal-backdrop');
+        console.log('  backdrop rect width:', Math.round(bd.getBoundingClientRect().width), 'window inner:', window.innerWidth);
+      } else {
+        console.table(rows2);
+      }
+    }, 450);
+    // ── END DIAGNOSTIC v2 ──
   });
 }
 
