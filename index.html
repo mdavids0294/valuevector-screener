@@ -3539,6 +3539,31 @@ function openModal(symbol) {
   fetchFinancials(c.symbol).then(rows => {
     const body = document.getElementById('fin-history-body');
     if (body) body.innerHTML = renderFinancialsHistory(rows);
+    // ── TEMP OVERFLOW DIAGNOSTIC — remove once fixed ──
+    setTimeout(() => {
+      const mb = document.querySelector('.modal-body');
+      if (!mb) return;
+      const limit = mb.clientWidth;
+      const offenders = [];
+      mb.querySelectorAll('*').forEach(el => {
+        const r = el.getBoundingClientRect();
+        const mbr = mb.getBoundingClientRect();
+        const rightSpill = Math.round(r.right - mbr.right);
+        if (r.width > limit + 0.5 || rightSpill > 0.5) {
+          offenders.push({
+            tag: el.tagName.toLowerCase(),
+            cls: el.className || '(none)',
+            w: Math.round(r.width),
+            spill: rightSpill,
+            text: (el.textContent || '').trim().slice(0, 30)
+          });
+        }
+      });
+      console.log('%c[OVERFLOW DIAGNOSTIC] modal-body width=' + limit + 'px', 'color:#c8f59a;font-weight:bold');
+      if (!offenders.length) console.log('  no element exceeds body width — overflow is NOT from a child element');
+      else console.table(offenders);
+    }, 400);
+    // ── END DIAGNOSTIC ──
   });
 }
 
