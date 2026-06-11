@@ -443,7 +443,7 @@ a{color:var(--accent);text-decoration:none}
 /* MODAL */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s;pointer-events:none}
 .modal-backdrop.visible{opacity:1;pointer-events:all}
-.modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:96vh;overflow-y:auto;transform:translateY(14px);transition:transform .18s}
+.modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:10px;width:100%;max-width:640px;max-height:96vh;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;transform:translateY(14px);transition:transform .18s}
 .modal-box::-webkit-scrollbar{width:3px}
 .modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .modal-backdrop.visible .modal-box{transform:translateY(0)}
@@ -3539,31 +3539,6 @@ function openModal(symbol) {
   fetchFinancials(c.symbol).then(rows => {
     const body = document.getElementById('fin-history-body');
     if (body) body.innerHTML = renderFinancialsHistory(rows);
-    // ── TEMP OVERFLOW DIAGNOSTIC — remove once fixed ──
-    setTimeout(() => {
-      const mb = document.querySelector('.modal-body');
-      if (!mb) return;
-      const limit = mb.clientWidth;
-      const offenders = [];
-      mb.querySelectorAll('*').forEach(el => {
-        const r = el.getBoundingClientRect();
-        const mbr = mb.getBoundingClientRect();
-        const rightSpill = Math.round(r.right - mbr.right);
-        if (r.width > limit + 0.5 || rightSpill > 0.5) {
-          offenders.push({
-            tag: el.tagName.toLowerCase(),
-            cls: el.className || '(none)',
-            w: Math.round(r.width),
-            spill: rightSpill,
-            text: (el.textContent || '').trim().slice(0, 30)
-          });
-        }
-      });
-      console.log('%c[OVERFLOW DIAGNOSTIC] modal-body width=' + limit + 'px', 'color:#c8f59a;font-weight:bold');
-      if (!offenders.length) console.log('  no element exceeds body width — overflow is NOT from a child element');
-      else console.table(offenders);
-    }, 400);
-    // ── END DIAGNOSTIC ──
   });
 }
 
