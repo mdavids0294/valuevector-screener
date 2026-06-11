@@ -537,10 +537,10 @@ a{color:var(--accent);text-decoration:none}
 .tr-dim{color:var(--text3);text-align:right;font-size:9px}
 .trade-empty{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
 .trade-loading{font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px 11px;border:0.5px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
-.fin-history-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;border:0.5px solid var(--border);border-top:none}
-.fin-history-table th{text-align:right;padding:6px 8px;color:var(--text3);font-weight:500;border-bottom:0.5px solid var(--border)}
-.fin-history-table th:first-child{text-align:left}
-.fin-history-table td{text-align:right;padding:5px 8px;border-bottom:0.5px solid var(--border)}
+.fin-history-table{width:100%;table-layout:fixed;border-collapse:collapse;font-family:var(--mono);font-size:11px;border:0.5px solid var(--border);border-top:none}
+.fin-history-table th{text-align:right;padding:6px 6px;color:var(--text3);font-weight:500;border-bottom:0.5px solid var(--border)}
+.fin-history-table th:first-child{text-align:left;width:64px}
+.fin-history-table td{text-align:right;padding:5px 6px;border-bottom:0.5px solid var(--border)}
 .fin-history-table td.fin-metric{text-align:left;color:var(--text2)}
 .fin-history-table tr:last-child td{border-bottom:none}
 .fin-history-table .num.pos{color:var(--accent)}
@@ -3354,21 +3354,25 @@ function renderFinancialsHistory(rows) {
     return '<div class="trade-loading">Not enough historical data.</div>';
   }
   const metrics = [
-    { label: 'Revenue',    pick: row => row.income?.revenue },
-    { label: 'EPS',        pick: row => row.income?.eps },
-    { label: 'Net income', pick: row => row.income?.netIncome },
-    { label: 'EBITDA',     pick: row => row.income?.ebitda },
-    { label: 'FCF',        pick: row => row.cash_flow?.freeCashFlow },
+    { label: 'Rev',    full: 'Revenue',    pick: row => row.income?.revenue },
+    { label: 'EPS',    full: 'EPS',        pick: row => row.income?.eps },
+    { label: 'NI',     full: 'Net income', pick: row => row.income?.netIncome },
+    { label: 'EBITDA', full: 'EBITDA',     pick: row => row.income?.ebitda },
+    { label: 'FCF',    full: 'FCF',        pick: row => row.cash_flow?.freeCashFlow },
   ];
-  // Year headers: skip the first year (no prior to grow from).
-  const yrs = rows.map(r => r.fiscal_year ?? (r.date ? String(r.date).slice(0,4) : '—'));
-  const head = '<th>Metric</th>' + yrs.slice(1).map((y, i) => `<th>${yrs[i]}→${y}</th>`).join('');
+  // Each column is a year-over-year step; header shows the ending fiscal year
+  // (short 'YY), with the full prior→current pair in a tooltip. Skip the first
+  // stored year since it has no prior to grow from.
+  const yrs = rows.map(r => String(r.fiscal_year ?? (r.date ? String(r.date).slice(0,4) : '')));
+  const shortYr = y => y && y.length >= 2 ? "'" + y.slice(-2) : (y || '—');
+  const head = '<th>Metric</th>' + yrs.slice(1).map((y, i) =>
+    `<th title="${yrs[i]}→${y}">${shortYr(y)}</th>`).join('');
   const body = metrics.map(m => {
     const cells = rows.slice(1).map((row, i) => {
       const g = pyGrowth(Number(m.pick(row)), Number(m.pick(rows[i])));
       return `<td>${pyFmt(g)}</td>`;
     }).join('');
-    return `<tr><td class="fin-metric">${m.label}</td>${cells}</tr>`;
+    return `<tr><td class="fin-metric" title="${m.full}">${m.label}</td>${cells}</tr>`;
   }).join('');
   return `<table class="fin-history-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
